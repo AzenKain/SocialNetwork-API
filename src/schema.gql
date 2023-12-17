@@ -1,0 +1,146 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+type NotificationType {
+  id: String!
+  content: String
+  created_at: DateTime!
+  updated_at: DateTime!
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type ProfileType {
+  name: String!
+  nickName: String
+  birthday: String
+  age: Float
+  description: String
+  phoneNumber: Float
+  avatarUrl: String
+}
+
+type User {
+  id: String!
+  email: String!
+  hash: String!
+  refreshToken: String!
+  detail: ProfileType!
+  notification: NotificationType!
+  created_at: DateTime!
+  updated_at: DateTime!
+}
+
+type AuthResponse {
+  access_token: String!
+  refresh_token: String!
+}
+
+type LogoutResponse {
+  response: String
+}
+
+type File {
+  id: String!
+  url: String!
+  userId: String!
+  created_at: DateTime!
+  updated_at: DateTime!
+}
+
+type Interaction {
+  id: String!
+  content: String!
+  userId: String!
+  created_at: DateTime!
+  updated_at: DateTime!
+}
+
+type Message {
+  id: String!
+  userId: String!
+  isDisplay: Boolean!
+  content: String!
+  fileUrl: [File!]!
+  interaction: [Interaction!]!
+  created_at: DateTime!
+  updated_at: DateTime!
+}
+
+type Roomchat {
+  id: String!
+  isSingle: Boolean!
+  ownerUserId: String!
+  description: String
+  imgDisplay: String
+  member: [String!]!
+  data: [Message!]!
+  created_at: DateTime!
+  updated_at: DateTime!
+}
+
+type Post {
+  id: String!
+  ownerUserId: String!
+  linkedShare: String
+  content: String!
+  fileUrl: [String!]!
+  interaction: [Interaction!]!
+  comment: [Message!]!
+  created_at: DateTime!
+  updated_at: DateTime!
+}
+
+type Query {
+  getUser(id: String!): User!
+  Login(userDto: AuthDto!): AuthResponse!
+  logout(id: String!): LogoutResponse!
+  Refresh(id: String!): AuthResponse!
+  getAllRomchatByUserId(id: String!): [Roomchat!]!
+  getRomchatById(id: String!): Roomchat!
+  addMemberRomchatById(addMemberRoom: AddMemberRoomDto!): Roomchat!
+  getAllPostByUserId(id: String!): [Post!]!
+  getPostById(id: String!): Post!
+}
+
+input AuthDto {
+  email: String!
+  password: String!
+}
+
+input AddMemberRoomDto {
+  userId: String!
+  roomchatId: String!
+  member: [String!]!
+}
+
+type Mutation {
+  SignUp(userDto: SignUpDto!): AuthResponse!
+  createRoomChat(createRoom: CreateRoomDto!): Roomchat!
+  createPost(createPost: CreatePostDto!): Post!
+}
+
+input SignUpDto {
+  email: String!
+  password: String!
+  name: String!
+  birthday: String
+  age: Int
+  phoneNumber: Int
+}
+
+input CreateRoomDto {
+  userId: String!
+  isSingle: Boolean!
+  member: [String!]!
+}
+
+input CreatePostDto {
+  userId: String!
+  content: String
+  fileUrl: [String!]!
+}
