@@ -31,7 +31,11 @@
 ```bash
 $ npm install
 ```
-
+## Rundatabase
+```bash
+# mongodb
+$ docker conpose up -d
+```
 ## Running the app
 
 ```bash
