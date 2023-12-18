@@ -1,6 +1,6 @@
-import { FileType } from "src/media/type";
 import { MessageType } from "src/message/message.type";
 import { Column, CreateDateColumn, Entity, ObjectIdColumn, PrimaryColumn, UpdateDateColumn } from "typeorm";
+import { MemberOutType } from "./romchat.type";
 
 
 @Entity()
@@ -25,6 +25,9 @@ export class Roomchat {
     
     @Column()
     member: string[];
+    
+    @Column("simple-json")
+    memberOut : MemberOutType[];
 
     @Column("simple-json")
     data: MessageType[];

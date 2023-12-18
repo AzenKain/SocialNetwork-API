@@ -7,8 +7,8 @@ import * as argon from 'argon2';
 import { v5 as uuidv5 } from 'uuid';
 import { v4 as uuidv4 } from 'uuid';
 import { AuthDto, SignUpDto } from './dto';
-import { ProfileType } from 'src/user/user.type';
-import { User } from './../user/user.entity';
+import { ProfileType } from 'src/user/type/user.type';
+import { User } from '../user/type/user.entity';
 
 @Injectable()
 export class AuthService {

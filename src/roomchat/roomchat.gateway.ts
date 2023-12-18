@@ -3,8 +3,10 @@ import { Server, Socket } from 'socket.io';
 import { RoomchatService } from './roomchat.service';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User } from 'src/user/user.entity';
+import { User } from 'src/user/type/user.entity';
+import { Global } from '@nestjs/common';
 
+@Global()
 @WebSocketGateway()
 export class RoomchatGateway implements OnGatewayInit, OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
@@ -26,6 +28,7 @@ export class RoomchatGateway implements OnGatewayInit, OnGatewayConnection, OnGa
       return;
     }
   }
+  
   async addMembersRoomchat(roomId: string, userId: string[]) {
     for (const memberId in userId) {
       try {
@@ -38,6 +41,17 @@ export class RoomchatGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     return;
   }
 
+  async leaveMembersRoomchat(roomId: string, userId: string[]) {
+    for (const memberId in userId) {
+      try {
+        this.connectedClients[memberId].leave(roomId);
+      }
+      catch (err) {
+        continue;
+      }
+    }
+    return;
+  }
   @SubscribeMessage('sendMessage')
   async sendMessage(@ConnectedSocket() socket: Socket, @MessageBody() payload: any) {
     await this.roomchatService.getPayloadFromSocket(socket);
@@ -45,12 +59,19 @@ export class RoomchatGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     this.server.to(payload.roomchatId).emit("newMessage", newMessage);
   }
 
-  afterInit(socket: Socket) {
-
+  @SubscribeMessage('removeMessage')
+  async removeMessage(@ConnectedSocket() socket: Socket, @MessageBody() payload: any) {
+    await this.roomchatService.getPayloadFromSocket(socket);
+    const removeMessage = await this.roomchatService.sendMessage(payload);
+    this.server.to(payload.roomchatId).emit("removeMessage", removeMessage);
   }
 
-  async notification(roomId: string, message: string) {
-    this.server.to(roomId).emit("notification", message)
+  afterInit(socket: Socket) {
+  
+  }
+
+  async notification(roomId: string, title: string,data: any) {
+    this.server.to(roomId).emit(title, data)
   }
 
   async handleConnection(socket: Socket) {

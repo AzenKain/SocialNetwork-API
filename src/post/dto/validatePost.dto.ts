@@ -1,8 +1,8 @@
 import { Field, InputType } from "@nestjs/graphql";
-import { IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsNotEmpty, IsString } from "class-validator";
 
 @InputType()
-export class CommentPostDto {
+export class ValidatePostDto {
     @IsString()
     @IsNotEmpty()
     @Field()
@@ -16,9 +16,5 @@ export class CommentPostDto {
     @IsString()
     @IsNotEmpty()
     @Field()
-    content: string;
-
-    @IsOptional()
-    @Field(() => [String])
-    fileUrl: string[];
+    Id: string;
 }

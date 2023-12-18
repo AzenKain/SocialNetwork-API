@@ -1,23 +1,22 @@
 import { Field, ObjectType } from "@nestjs/graphql";
 
-
-@ObjectType("Interaction")
-export class InteractionType {
+@ObjectType("Commit")
+export class CommitType {
     @Field()
     id: string;
 
     @Field()
-    content: string;
+    createdUser: string;
 
     @Field()
-    userId: string;
-    
+    receiveUserId: string;
+
     @Field()
-    isDisplay: boolean;
+    value: boolean;
 
     @Field()
     created_at: Date;
-    
+
     @Field()
     updated_at: Date;
 }

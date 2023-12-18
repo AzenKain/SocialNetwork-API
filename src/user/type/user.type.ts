@@ -39,10 +39,10 @@ export class UserType {
     @Field()
     refreshToken: string;
 
-    @Field(type => ProfileType)
+    @Field(()=> ProfileType)
     detail: ProfileType;
 
-    @Field(type => NotificationType)
+    @Field(()=> NotificationType)
     notification: NotificationType;
 
     @Field()

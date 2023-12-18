@@ -19,6 +19,9 @@ export class PostType {
     @Field(() => [String])
     fileUrl: string[];
 
+    @Field()
+    isDisplay: boolean;
+
     @Field(() => [InteractionType])
     interaction: InteractionType[];
 

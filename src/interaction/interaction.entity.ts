@@ -15,6 +15,9 @@ export class Interaction {
     @Column()
     userId: string;
 
+    @Column()
+    isDisplay: boolean;
+    
     @CreateDateColumn()
     created_at: Date;
         

@@ -1,5 +1,4 @@
 import { InteractionType } from "src/interaction/interaction.type";
-import { FileType } from "src/media/type";
 import { MessageType } from "src/message/message.type";
 import { Column, CreateDateColumn, Entity, ObjectIdColumn, PrimaryColumn, UpdateDateColumn } from "typeorm";
 
@@ -23,6 +22,9 @@ export class PostEntity {
 
     @Column()
     fileUrl: string[];
+    
+    @Column()
+    isDisplay: boolean;
 
     @Column("simple-json")
     interaction: InteractionType[];

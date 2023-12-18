@@ -1,5 +1,4 @@
 import { Field, ObjectType } from "@nestjs/graphql";
-import { FileType } from "src/media/type";
 import { MessageType } from "src/message/message.type";
 
 
@@ -22,9 +21,27 @@ export class RoomchatType {
     
     @Field(() => [String])
     member: string[];
+    
+    @Field(() => [MemberOutType])
+    memberOut : MemberOutType[];
 
     @Field(() => [MessageType])
     data: MessageType[];
+
+    @Field()
+    created_at: Date;
+    
+    @Field()
+    updated_at: Date;
+}
+
+@ObjectType("MemberOut")
+export class MemberOutType {
+    @Field()
+    memberId: string;
+
+    @Field()
+    messageCount: number;
 
     @Field()
     created_at: Date;

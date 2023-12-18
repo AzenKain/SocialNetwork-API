@@ -3,7 +3,7 @@ import { RoomchatType } from './romchat.type';
 import { RoomchatService } from './roomchat.service';
 import { UseGuards } from '@nestjs/common';
 import { JwtGuardGql } from 'src/auth/guard';
-import { AddMemberRoomDto, CreateRoomDto } from './dto';
+import { MemberRoomDto, CreateRoomDto } from './dto';
 import { RoomchatGateway } from './roomchat.gateway';
 
 
@@ -35,17 +35,28 @@ export class RoomchatResolver {
     ) {
         const newRoom = await this.roomchatService.createRoomchat(createRoom)
         await this.roomchatGateway.addMembersRoomchat(newRoom.id, newRoom.member);
-        await this.roomchatGateway.notification(newRoom.id, "New Room created!")
+        await this.roomchatGateway.notification(newRoom.id, "New Room created!", newRoom)
         return newRoom;
     }
 
     @Query(() => RoomchatType)
     async addMemberRomchatById(
-        @Args('addMemberRoom') addMemberRoom: AddMemberRoomDto
+        @Args('addMemberRoom') addMemberRoom: MemberRoomDto
     ) {
         const newRoom = await this.roomchatService.addUserToRoomchat(addMemberRoom)
         await this.roomchatGateway.addMembersRoomchat(newRoom.id, newRoom.member);
-        await this.roomchatGateway.notification(newRoom.id, "New Member Add!")
+        await this.roomchatGateway.notification(newRoom.id, "New Member Add!", newRoom)
+        return newRoom;
+    }
+
+    @Query(() => RoomchatType)
+    async removeMemberRomchatById(
+        @Args('removeMemberRoom') removeMemberRoom: MemberRoomDto
+    ) {
+        const newRoom = await this.roomchatService.removeUserFromRoomchat(removeMemberRoom)
+        await this.roomchatGateway.leaveMembersRoomchat(newRoom.id, newRoom.member);
+        await this.roomchatGateway.notification(newRoom.id, "Remove Member!", newRoom)
         return newRoom;
     }
 }
+

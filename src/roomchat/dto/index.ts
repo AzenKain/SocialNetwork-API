@@ -1,3 +1,3 @@
 export * from './createRoom.dto'
 
-export * from './addMemberRoom.dto'
+export * from './memberRoom.dto'

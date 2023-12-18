@@ -17,8 +17,8 @@ export class MessageType {
     @Field()
     content: string;
     
-    @Field(() => [FileType])
-    fileUrl: FileType[];
+    @Field(() => [String])
+    fileUrl: string[];
 
     @Field(() => [InteractionType])
     interaction: InteractionType[];

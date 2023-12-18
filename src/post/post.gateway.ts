@@ -2,7 +2,7 @@ import { OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, SubscribeMessa
 import { Server, Socket } from 'socket.io';
 import { PostService } from './post.service';
 import { InjectRepository } from '@nestjs/typeorm';
-import { User } from 'src/user/user.entity';
+import { User } from 'src/user/type/user.entity';
 import { Repository } from 'typeorm';
 
 @WebSocketGateway()
@@ -22,8 +22,8 @@ export class PostGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
   }
 
-  async notification(roomId: string, message: string) {
-    this.server.to(roomId).emit("notification", message)
+  async notification(roomId: string, title: string,data: any) {
+    this.server.to(roomId).emit(title, data)
   }
 
   async handleConnection(socket: Socket) {

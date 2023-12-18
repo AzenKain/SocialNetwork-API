@@ -4,7 +4,9 @@
 
 type NotificationType {
   id: String!
+  type: String!
   content: String
+  fileUrl: [String!]!
   created_at: DateTime!
   updated_at: DateTime!
 }
@@ -35,27 +37,11 @@ type User {
   updated_at: DateTime!
 }
 
-type AuthResponse {
-  access_token: String!
-  refresh_token: String!
-}
-
-type LogoutResponse {
-  response: String
-}
-
-type File {
-  id: String!
-  url: String!
-  userId: String!
-  created_at: DateTime!
-  updated_at: DateTime!
-}
-
 type Interaction {
   id: String!
   content: String!
   userId: String!
+  isDisplay: Boolean!
   created_at: DateTime!
   updated_at: DateTime!
 }
@@ -65,7 +51,7 @@ type Message {
   userId: String!
   isDisplay: Boolean!
   content: String!
-  fileUrl: [File!]!
+  fileUrl: [String!]!
   interaction: [Interaction!]!
   created_at: DateTime!
   updated_at: DateTime!
@@ -78,9 +64,26 @@ type Roomchat {
   description: String
   imgDisplay: String
   member: [String!]!
+  memberOut: [MemberOut!]!
   data: [Message!]!
   created_at: DateTime!
   updated_at: DateTime!
+}
+
+type MemberOut {
+  memberId: String!
+  messageCount: Float!
+  created_at: DateTime!
+  updated_at: DateTime!
+}
+
+type AuthResponse {
+  access_token: String!
+  refresh_token: String!
+}
+
+type LogoutResponse {
+  response: String
 }
 
 type Post {
@@ -89,6 +92,7 @@ type Post {
   linkedShare: String
   content: String!
   fileUrl: [String!]!
+  isDisplay: Boolean!
   interaction: [Interaction!]!
   comment: [Message!]!
   created_at: DateTime!
@@ -97,14 +101,30 @@ type Post {
 
 type Query {
   getUser(id: String!): User!
+  acceptFriendUser(acceptFriend: FriendDto!): User!
+  getAllRomchatByUserId(id: String!): [Roomchat!]!
+  getRomchatById(id: String!): Roomchat!
+  addMemberRomchatById(addMemberRoom: MemberRoomDto!): Roomchat!
+  removeMemberRomchatById(removeMemberRoom: MemberRoomDto!): Roomchat!
   Login(userDto: AuthDto!): AuthResponse!
   logout(id: String!): LogoutResponse!
   Refresh(id: String!): AuthResponse!
-  getAllRomchatByUserId(id: String!): [Roomchat!]!
-  getRomchatById(id: String!): Roomchat!
-  addMemberRomchatById(addMemberRoom: AddMemberRoomDto!): Roomchat!
   getAllPostByUserId(id: String!): [Post!]!
   getPostById(id: String!): Post!
+  commentPost(commentPost: CommentPostDto!): Post!
+  sharePost(sharePost: SharePostDto!): Post!
+  interactPost(interactPost: InteractPostDto!): Post!
+}
+
+input FriendDto {
+  userId: String!
+  friendId: String!
+}
+
+input MemberRoomDto {
+  userId: String!
+  roomchatId: String!
+  member: [String!]!
 }
 
 input AuthDto {
@@ -112,16 +132,49 @@ input AuthDto {
   password: String!
 }
 
-input AddMemberRoomDto {
+input CommentPostDto {
   userId: String!
-  roomchatId: String!
-  member: [String!]!
+  postId: String!
+  content: String!
+  fileUrl: [String!]!
+}
+
+input SharePostDto {
+  userId: String!
+  postId: String!
+  content: String
+  fileUrl: [String!]!
+}
+
+input InteractPostDto {
+  userId: String!
+  postId: String!
+  content: String
 }
 
 type Mutation {
-  SignUp(userDto: SignUpDto!): AuthResponse!
+  addFriendUser(addFriend: FriendDto!): User!
+  removeFriendUser(addFriend: FriendDto!): User!
+  addNotificationUser(addNotification: NotificationDto!): User!
   createRoomChat(createRoom: CreateRoomDto!): Roomchat!
+  SignUp(userDto: SignUpDto!): AuthResponse!
   createPost(createPost: CreatePostDto!): Post!
+  RemovePost(RemovePost: ValidatePostDto!): Post!
+  RemoveComment(RemoveComment: ValidatePostDto!): Post!
+  RemoveInteraction(RemoveInteraction: ValidatePostDto!): Post!
+}
+
+input NotificationDto {
+  userId: String!
+  type: String!
+  content: String!
+  fileUrl: [String!]!
+}
+
+input CreateRoomDto {
+  userId: String!
+  isSingle: Boolean!
+  member: [String!]!
 }
 
 input SignUpDto {
@@ -133,14 +186,14 @@ input SignUpDto {
   phoneNumber: Int
 }
 
-input CreateRoomDto {
-  userId: String!
-  isSingle: Boolean!
-  member: [String!]!
-}
-
 input CreatePostDto {
   userId: String!
   content: String
   fileUrl: [String!]!
+}
+
+input ValidatePostDto {
+  userId: String!
+  postId: String!
+  Id: String!
 }

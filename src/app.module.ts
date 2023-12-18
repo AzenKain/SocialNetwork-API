@@ -3,7 +3,7 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { TypeOrmModule} from "@nestjs/typeorm"
 import { UserModule } from './user/user.module';
-import { User } from './user/user.entity';
+import { User } from './user/type/user.entity';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { MediaModule } from './media/media.module';
@@ -16,6 +16,7 @@ import { PostModule } from './post/post.module';
 import { InteractionModule } from './interaction/interaction.module';
 import { Roomchat } from './roomchat/romchat.entity';
 import { PostEntity } from './post/post.entity';
+import { CommitEntity } from './user/type/commit.entity';
 
 
 @Module({
@@ -42,7 +43,8 @@ import { PostEntity } from './post/post.entity';
         User,
         FileUpload,
         Roomchat,
-        PostEntity
+        PostEntity,
+        CommitEntity
       ]
     }),
     AuthModule,

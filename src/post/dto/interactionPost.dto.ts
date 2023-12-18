@@ -1,8 +1,9 @@
 import { Field, InputType } from "@nestjs/graphql";
 import { IsNotEmpty, IsOptional, IsString } from "class-validator";
 
+
 @InputType()
-export class SharePostDto {
+export class InteractPostDto {
     @IsString()
     @IsNotEmpty()
     @Field()
@@ -12,15 +13,9 @@ export class SharePostDto {
     @IsNotEmpty()
     @Field()
     postId: string;
-
+    
     @IsString()
     @IsOptional()
     @Field({nullable: true})
     content: string | null;
-
-    @IsOptional()
-    @Field(() => [String])
-    fileUrl: string[];
-
-
 }
