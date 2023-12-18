@@ -31,6 +31,16 @@
 ```bash
 $ npm install
 ```
+## Running data base
+```bash
+# mongodb
+$ docker conpose up -d
+```
+## Setup firebase
+
+```
+fill your key firebase and jwt-sceret, jwt-refresh in file .env
+```
 
 ## Running the app
 
