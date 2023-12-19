@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { ForbiddenException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Socket } from 'socket.io';
 import { WsException } from '@nestjs/websockets';
-import { PostEntity } from './post.entity';
+import { PostEntity } from './type/post.entity';
 import { CommentPostDto, CreatePostDto, InteractPostDto, SharePostDto, ValidatePostDto } from './dto';
 import { v5 as uuidv5 } from 'uuid';
 import { MessageType } from 'src/message/message.type';
@@ -20,12 +20,19 @@ export class PostService {
     ) { }
 
     async getPostById(postId: string) {
-        return await this.postRespository.findOne({
+        const postSelect =  await this.postRespository.findOne({
             where: {
                 id: postId
             }
         });
+        if (!postSelect) {
+            throw new ForbiddenException(
+                'This post does not exist',
+            );
+        }
+        return postSelect
     }
+
     async createPost(post: CreatePostDto) {
         const postNew = this.postRespository.create({
             id: uuidv5(post.userId, uuidv5.URL),
@@ -36,19 +43,16 @@ export class PostService {
         return await this.postRespository.save(postNew);
     }
 
-    async commentPostById(comment: CommentPostDto) {
-        const newPost = await this.getPostById(comment.postId)
-        const newComment: MessageType = new MessageType();
-        newComment.id = uuidv5(comment.userId + comment.postId + newPost.comment.length, uuidv5.URL);
-        newComment.content = comment.content;
-        newComment.fileUrl = comment.fileUrl;
-        newComment.userId = comment.userId;
-        newComment.isDisplay = true;
-        newPost.comment.push(newComment);
+    async validatePostById(payload: ValidatePostDto){
+        const newPost = await this.getPostById(payload.postId)
+        newPost.fileUrl = payload.fileUrl
+        newPost.content = payload.content
         return await this.postRespository.save(newPost);
     }
 
     async sharePostById(share: SharePostDto) {
+        await this.getPostById(share.postId)
+
         const postNew = this.postRespository.create({
             id: uuidv5(share.userId, uuidv5.URL),
             ownerUserId: share.userId,
@@ -62,12 +66,13 @@ export class PostService {
     async interactPostById(interaction: InteractPostDto) {
         const newPost = await this.getPostById(interaction.postId);
         const newInteraction = new InteractionType();
-        newInteraction.id = uuidv5(interaction.userId + interaction.postId + newPost.comment.length, uuidv5.URL);
+        newInteraction.id = uuidv5(interaction.userId + interaction.postId + newPost.interaction.length, uuidv5.URL);
         newInteraction.content = interaction.content;
         newInteraction.userId = interaction.userId;
         newInteraction.isDisplay = true;
         newPost.interaction.push(newInteraction);
-        return await this.postRespository.save(newPost);
+        await this.postRespository.save(newPost);
+        return newInteraction
     }
 
     async removePostById(payload: ValidatePostDto) {
@@ -75,12 +80,37 @@ export class PostService {
         validatePost.isDisplay = false;
         return await this.postRespository.save(validatePost);
     }
-
-    async removeCommentById(payload: ValidatePostDto) {
+    async commentPostById(comment: CommentPostDto) {
+        const newPost = await this.getPostById(comment.postId)
+        const newComment: MessageType = new MessageType();
+        newComment.id = uuidv5(comment.userId + comment.postId + newPost.comment.length, uuidv5.URL);
+        newComment.content = comment.content;
+        newComment.fileUrl = comment.fileUrl;
+        newComment.userId = comment.userId;
+        newComment.isDisplay = true;
+        newPost.comment.push(newComment);
+        await this.postRespository.save(newPost);
+        return newComment;
+    }
+    async validateCommentById(payload: CommentPostDto){
         const validatePost = await this.getPostById(payload.postId);
         let count: number = 0;
         for (let i : number = 0; i < validatePost.comment.length; i++) {
-            if (validatePost.comment[i].id === payload.Id) {
+            if (validatePost.comment[i].id === payload.commentId) {
+                count = i;
+                break;
+            }
+        }
+        validatePost.comment[count].content = payload.content
+        validatePost.comment[count].fileUrl = payload.fileUrl
+        return await this.postRespository.save(validatePost);
+    }
+
+    async removeCommentById(payload: CommentPostDto) {
+        const validatePost = await this.getPostById(payload.postId);
+        let count: number = 0;
+        for (let i : number = 0; i < validatePost.comment.length; i++) {
+            if (validatePost.comment[i].id === payload.commentId) {
                 count = i;
                 break;
             }
@@ -89,11 +119,11 @@ export class PostService {
         return await this.postRespository.save(validatePost);
     }
 
-    async removeInteractById(payload: ValidatePostDto) {
+    async removeInteractById(payload: InteractPostDto) {
         const validatePost = await this.getPostById(payload.postId);
         let count: number = 0;
         for (let i : number = 0; i < validatePost.interaction.length; i++) {
-            if (validatePost.interaction[i].id === payload.Id) {
+            if (validatePost.interaction[i].id === payload.interactionId) {
                 count = i;
                 break;
             }
@@ -120,6 +150,47 @@ export class PostService {
             throw new WsException('Invalid credentials.');
         }
     }
+
+
+    async addInteractMessage(payload: InteractPostDto) {
+        const newPost = await this.getPostById(payload.postId);
+        const newInteraction = new InteractionType();
+        newInteraction.id = uuidv5(payload.userId + payload + newPost.comment.length, uuidv5.URL);
+        newInteraction.content = payload.content;
+        newInteraction.userId = payload.userId;
+        newInteraction.isDisplay = true;
+        let countComment: number = 0;
+        for (let i : number = 0; i < newPost.comment.length; i++) {
+            if (newPost.comment[i].id === payload.commentId) {
+                countComment = i;
+                break;
+            }
+        }
+        newPost.comment[countComment].interaction.push(newInteraction);
+        await this.postRespository.save(newPost);
+        return newPost.comment[countComment];
+    }
+
+    async removeInteractMessage(payload: InteractPostDto) {
+        const validatePost = await this.getPostById(payload.postId);
+        let countComment: number = 0;
+        for (let i : number = 0; i < validatePost.comment.length; i++) {
+            if (validatePost.comment[i].id === payload.commentId) {
+                countComment = i;
+                break;
+            }
+        }
+        let countInteraction: number = 0;
+        for (let i : number = 0; i < validatePost.comment[countComment].interaction.length; i++) {
+            if (validatePost.comment[countComment].interaction[i].id === payload.interactionId) {
+                countInteraction = i;
+                break;
+            }
+        }
+        validatePost.comment[countComment].interaction[countInteraction].isDisplay = false;
+        await this.postRespository.save(validatePost);
+    }
+
     async decodeHeader(socket: Socket) {
         let auth_token = socket.handshake.headers.authorization;
         auth_token = auth_token.split(' ')[1];

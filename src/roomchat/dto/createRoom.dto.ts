@@ -1,5 +1,5 @@
 import { Field, InputType } from "@nestjs/graphql";
-import { IsBoolean, IsNotEmpty, IsString } from "class-validator";
+import { IsNotEmpty, IsOptional, IsString } from "class-validator";
 
 @InputType()
 export class CreateRoomDto {
@@ -8,12 +8,17 @@ export class CreateRoomDto {
     @Field()
     userId: string;
 
-    @IsBoolean()
-    @IsNotEmpty()
-    @Field()
-    isSingle: boolean;
-
     @IsNotEmpty()
     @Field(() => [String])
     member: string[];
+
+    @IsString()
+    @IsOptional()
+    @Field({nullable: true})
+    description?: string | null;
+
+    @IsString()
+    @IsOptional()
+    @Field({nullable: true})
+    imgDisplay?: string | null;
 }

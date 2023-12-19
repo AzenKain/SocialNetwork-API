@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { RoomchatGateway } from './roomchat.gateway';
 import { RoomchatService } from './roomchat.service';
-import { Roomchat } from './romchat.entity';
+import { Roomchat } from './type/romchat.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/user/type/user.entity';
 import { RoomchatResolver } from './roomchat.resolver';

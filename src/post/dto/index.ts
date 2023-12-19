@@ -1,5 +1,3 @@
-
-
 export * from "./createPost.dto"
 export * from "./commentPost.dto"
 export * from "./interactionPost.dto"

@@ -12,7 +12,7 @@ export class Roomchat {
     id: string;
 
     @Column()
-    isSingle: boolean;
+    isDisplay: boolean;
 
     @Column()
     ownerUserId: string;

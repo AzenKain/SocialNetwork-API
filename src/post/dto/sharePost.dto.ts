@@ -21,6 +21,4 @@ export class SharePostDto {
     @IsOptional()
     @Field(() => [String])
     fileUrl: string[];
-
-
 }

@@ -14,8 +14,8 @@ import { RoomchatModule } from './roomchat/roomchat.module';
 import { MessageModule } from './message/message.module';
 import { PostModule } from './post/post.module';
 import { InteractionModule } from './interaction/interaction.module';
-import { Roomchat } from './roomchat/romchat.entity';
-import { PostEntity } from './post/post.entity';
+import { Roomchat } from './roomchat/type/romchat.entity';
+import { PostEntity } from './post/type/post.entity';
 import { CommitEntity } from './user/type/commit.entity';
 
 

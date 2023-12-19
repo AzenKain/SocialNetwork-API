@@ -1,5 +1,4 @@
 import { InteractionType } from "src/interaction/interaction.type";
-import { FileType } from "src/media/type";
 import { Column, CreateDateColumn, Entity, ObjectIdColumn, PrimaryColumn, UpdateDateColumn } from "typeorm";
 
 
@@ -12,7 +11,7 @@ export class Message {
     id: string;
     
     @Column()
-    UserId: string;
+    userId: string;
 
     @Column()
     isDisplay: boolean;

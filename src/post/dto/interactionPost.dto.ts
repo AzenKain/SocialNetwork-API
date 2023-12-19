@@ -13,7 +13,17 @@ export class InteractPostDto {
     @IsNotEmpty()
     @Field()
     postId: string;
-    
+
+    @IsString()
+    @IsOptional()
+    @Field({nullable: true})
+    commentId?: string | null;
+
+    @IsString()
+    @IsOptional()
+    @Field({nullable: true})
+    interactionId?: string | null;
+
     @IsString()
     @IsOptional()
     @Field({nullable: true})

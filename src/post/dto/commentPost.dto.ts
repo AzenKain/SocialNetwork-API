@@ -14,6 +14,11 @@ export class CommentPostDto {
     postId: string;
 
     @IsString()
+    @IsOptional()
+    @Field({nullable: true})
+    commentId?: string | null;
+
+    @IsString()
     @IsNotEmpty()
     @Field()
     content: string;

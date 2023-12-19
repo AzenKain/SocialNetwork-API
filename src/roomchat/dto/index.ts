@@ -1,3 +1,5 @@
 export * from './createRoom.dto'
-
 export * from './memberRoom.dto'
+export * from './validateMessage.dto'
+export * from './interactMessage.dto'
+export * from './validateRoom.dto'

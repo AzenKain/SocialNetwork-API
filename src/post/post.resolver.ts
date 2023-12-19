@@ -1,11 +1,13 @@
-import { UseGuards } from '@nestjs/common';
+import { HttpCode, UseGuards } from '@nestjs/common';
 import { JwtGuardGql } from 'src/auth/guard';
-import { PostType } from './post.type';
+import { PostType } from './type/post.type';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { PostService } from './post.service';
 import { PostGateway } from './post.gateway';
-import { CommentPostDto, CreatePostDto, SharePostDto, InteractPostDto } from './dto';
-import { ValidatePostDto } from './dto/validatePost.dto';
+import { CommentPostDto, CreatePostDto, SharePostDto, InteractPostDto, ValidatePostDto} from './dto';
+import { MessageType } from 'src/message/message.type';
+import { NullType } from './type/null.type';
+import { InteractionType } from 'src/interaction/interaction.type';
 
 @UseGuards(JwtGuardGql)
 @Resolver(() => PostType)
@@ -16,6 +18,7 @@ export class PostResolver {
         private postGateway: PostGateway
     ) { }
 
+    @HttpCode(200)
     @Query(() => [PostType])
     getAllPostByUserId(
         @Args('id') userId: string
@@ -23,6 +26,7 @@ export class PostResolver {
         return this.postService.getAllPostByUserId(userId);
     }
 
+    @HttpCode(200)
     @Query(() => PostType)
     getPostById(
         @Args('id') id: string
@@ -30,66 +34,110 @@ export class PostResolver {
         return this.postService.getPostById(id);
     }
 
+    @HttpCode(201)
     @Mutation(() => PostType)
     async createPost(
         @Args('createPost') post: CreatePostDto
     ) {
         const newPost = await this.postService.createPost(post)
-        await this.postGateway.notification(newPost.id, "New Post created!", newPost)
+        await this.postGateway.notification(post.userId, "newPostCreated", newPost)
         return newPost;
     }
 
-    @Query(() => PostType)
-    async commentPost(
-        @Args('commentPost') commentPost: CommentPostDto
-    ) {
-        const newPost  = await this.postService.commentPostById(commentPost)
-        await this.postGateway.notification(newPost.id, "New comment!", newPost)
-        return newPost;
-    }
-
-    @Query(() => PostType)
+    @HttpCode(201)
+    @Mutation(() => PostType)
     async sharePost(
         @Args('sharePost') sharePost: SharePostDto
     ) {
         const newPost  = await this.postService.sharePostById(sharePost)
-        await this.postGateway.notification(newPost.id, "Share Post!", newPost)
+        const linkedPost = await this.postService.getPostById(sharePost.postId)
+        await this.postGateway.notification(sharePost.userId, "newPostCreated", newPost)
+        await this.postGateway.notification(linkedPost.ownerUserId, "sharePost", newPost)
+        return newPost;
+    }
+    @HttpCode(201)
+    @Mutation(() => MessageType)
+    async validatePost(
+        @Args('validatePost') validatePost: ValidatePostDto
+    ) {
+        const newPost  = await this.postService.validatePostById(validatePost)
+        await this.postGateway.notification(validatePost.postId, "validatePost", validatePost)
         return newPost;
     }
 
-    @Query(() => PostType)
+    @HttpCode(204)
+    @Mutation(() => NullType)
+    async removePost(
+        @Args('removePost') RemovePost: ValidatePostDto
+    ) {
+        await this.postService.removePostById(RemovePost)
+        await this.postGateway.notification(RemovePost.postId, "removePost", RemovePost)
+    }
+
+    @HttpCode(201)
+    @Mutation(() => MessageType)
+    async addComment(
+        @Args('addComment') commentPost: CommentPostDto
+    ) {
+        const newComment  = await this.postService.commentPostById(commentPost)
+        await this.postGateway.notification(commentPost.postId, "addComment", commentPost)
+        return newComment;
+    }
+
+    @HttpCode(201)
+    @Mutation(() => MessageType)
+    async validateComment(
+        @Args('validateComment') commentPost: CommentPostDto
+    ) {
+        const newComment  = await this.postService.validateCommentById(commentPost)
+        await this.postGateway.notification(commentPost.postId, "validateComment", commentPost)
+        return newComment;
+    }
+
+    @HttpCode(204)
+    @Mutation(() => NullType)
+    async removeComment(
+        @Args('removeComment') removeComment: CommentPostDto
+    ) {
+        await this.postService.removeCommentById(removeComment)
+        await this.postGateway.notification(removeComment.postId, "removeComment", removeComment)
+    }
+
+    @HttpCode(201)
+    @Mutation(() => InteractionType)
     async interactPost(
-        @Args('interactPost') interactPost: InteractPostDto
+        @Args('addInteractPost') interactPost: InteractPostDto
     ) {
-        const newPost  = await this.postService.interactPostById(interactPost)
-        await this.postGateway.notification(newPost.id, "New interaction!", newPost)
-        return newPost;
+        const newInteraction  = await this.postService.interactPostById(interactPost)
+        await this.postGateway.notification(interactPost.postId, "addInteractionPost!", interactPost)
+        return newInteraction;
     }
 
-    @Mutation(() => PostType)
-    async RemovePost(
-        @Args('RemovePost') RemovePost: ValidatePostDto
+    @HttpCode(204)
+    @Mutation(() => NullType)
+    async RemoveInteractionPost(
+        @Args('removeInteractionPost') interactPost: InteractPostDto
     ) {
-        const newPost  = await this.postService.removePostById(RemovePost)
-        await this.postGateway.notification(newPost.id, "Remove post!", newPost)
-        return newPost;
+        await this.postService.removeInteractById(interactPost)
+        await this.postGateway.notification(interactPost.postId, "removeInteractionPost", interactPost)
     }
 
-    @Mutation(() => PostType)
-    async RemoveComment(
-        @Args('RemoveComment') RemoveComment: ValidatePostDto
+    @HttpCode(201)
+    @Mutation(() => MessageType)
+    async InteractComment(
+        @Args('addInteractComment') interactComment: InteractPostDto
     ) {
-        const newPost  = await this.postService.removeCommentById(RemoveComment)
-        await this.postGateway.notification(newPost.id, "Remove comment!", newPost)
-        return newPost;
+        const newComment  = await this.postService.addInteractMessage(interactComment)
+        await this.postGateway.notification(interactComment.postId, "addInteractionComment", interactComment)
+        return newComment;
     }
 
-    @Mutation(() => PostType)
-    async RemoveInteraction(
-        @Args('RemoveInteraction') RemoveInteraction: ValidatePostDto
+    @HttpCode(204)
+    @Mutation(() => NullType)
+    async RemoveInteractionComment(
+        @Args('removeInteractionComment') interactComment: InteractPostDto
     ) {
-        const newPost  = await this.postService.removeInteractById(RemoveInteraction)
-        await this.postGateway.notification(newPost.id, "Remove interaction!", newPost)
-        return newPost;
+        await this.postService.removeInteractMessage(interactComment)
+        await this.postGateway.notification(interactComment.postId, "removeInteractionComment", interactComment)
     }
 }

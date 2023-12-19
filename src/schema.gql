@@ -59,7 +59,7 @@ type Message {
 
 type Roomchat {
   id: String!
-  isSingle: Boolean!
+  isDisplay: Boolean!
   ownerUserId: String!
   description: String
   imgDisplay: String
@@ -75,6 +75,10 @@ type MemberOut {
   messageCount: Float!
   created_at: DateTime!
   updated_at: DateTime!
+}
+
+type NullResponse {
+  data: String
 }
 
 type AuthResponse {
@@ -104,16 +108,11 @@ type Query {
   acceptFriendUser(acceptFriend: FriendDto!): User!
   getAllRomchatByUserId(id: String!): [Roomchat!]!
   getRomchatById(id: String!): Roomchat!
-  addMemberRomchatById(addMemberRoom: MemberRoomDto!): Roomchat!
-  removeMemberRomchatById(removeMemberRoom: MemberRoomDto!): Roomchat!
   Login(userDto: AuthDto!): AuthResponse!
   logout(id: String!): LogoutResponse!
   Refresh(id: String!): AuthResponse!
   getAllPostByUserId(id: String!): [Post!]!
   getPostById(id: String!): Post!
-  commentPost(commentPost: CommentPostDto!): Post!
-  sharePost(sharePost: SharePostDto!): Post!
-  interactPost(interactPost: InteractPostDto!): Post!
 }
 
 input FriendDto {
@@ -121,47 +120,56 @@ input FriendDto {
   friendId: String!
 }
 
-input MemberRoomDto {
-  userId: String!
-  roomchatId: String!
-  member: [String!]!
-}
-
 input AuthDto {
   email: String!
   password: String!
 }
 
-input CommentPostDto {
-  userId: String!
-  postId: String!
-  content: String!
-  fileUrl: [String!]!
-}
-
-input SharePostDto {
-  userId: String!
-  postId: String!
-  content: String
-  fileUrl: [String!]!
-}
-
-input InteractPostDto {
-  userId: String!
-  postId: String!
-  content: String
-}
-
 type Mutation {
+  validateUser(validateUser: ValidateUserDto!): User!
+  changePassword(changePassword: ChangePasswordDto!): User!
   addFriendUser(addFriend: FriendDto!): User!
   removeFriendUser(addFriend: FriendDto!): User!
   addNotificationUser(addNotification: NotificationDto!): User!
   createRoomChat(createRoom: CreateRoomDto!): Roomchat!
+  removeRoomChat(removeRoomChat: ValidateRoomDto!): NullResponse!
+  addMemberRomchat(addMember: MemberRoomDto!): Roomchat!
+  removeMemberRoomchat(removeMember: MemberRoomDto!): NullResponse!
+  removeMessageRoomchat(removeMessage: ValidateMessageDto!): NullResponse!
+  addInteractMessageRoomchat(addInteractMessage: InteractMessageDto!): Message!
+  removeInteractMessageRoomchat(removeInteractMessage: ValidateMessageDto!): NullResponse!
+  validateRomchat(validateRoom: ValidateRoomDto!): Roomchat!
+  validateMessage(validateMessage: ValidateMessageDto!): Message!
   SignUp(userDto: SignUpDto!): AuthResponse!
   createPost(createPost: CreatePostDto!): Post!
-  RemovePost(RemovePost: ValidatePostDto!): Post!
-  RemoveComment(RemoveComment: ValidatePostDto!): Post!
-  RemoveInteraction(RemoveInteraction: ValidatePostDto!): Post!
+  sharePost(sharePost: SharePostDto!): Post!
+  validatePost(validatePost: ValidatePostDto!): Message!
+  removePost(removePost: ValidatePostDto!): NullResponse!
+  addComment(addComment: CommentPostDto!): Message!
+  validateComment(validateComment: CommentPostDto!): Message!
+  removeComment(removeComment: CommentPostDto!): NullResponse!
+  interactPost(addInteractPost: InteractPostDto!): Interaction!
+  RemoveInteractionPost(removeInteractionPost: InteractPostDto!): NullResponse!
+  InteractComment(addInteractComment: InteractPostDto!): Message!
+  RemoveInteractionComment(removeInteractionComment: InteractPostDto!): NullResponse!
+}
+
+input ValidateUserDto {
+  userId: String!
+  name: String!
+  nickName: String!
+  description: String!
+  avatarUrl: String!
+  birthday: String
+  age: Int
+  phoneNumber: Int
+}
+
+input ChangePasswordDto {
+  userId: String!
+  currentPassword: String!
+  newPassword: String!
+  validatePassword: String!
 }
 
 input NotificationDto {
@@ -173,8 +181,38 @@ input NotificationDto {
 
 input CreateRoomDto {
   userId: String!
-  isSingle: Boolean!
   member: [String!]!
+  description: String
+  imgDisplay: String
+}
+
+input ValidateRoomDto {
+  userId: String!
+  roomchatId: String!
+  description: String
+  imgDisplay: String
+}
+
+input MemberRoomDto {
+  userId: String!
+  roomchatId: String!
+  member: [String!]!
+}
+
+input ValidateMessageDto {
+  userId: String!
+  roomchatId: String!
+  messageId: String!
+  interactionId: String
+  content: String
+  fileUrl: [String!]
+}
+
+input InteractMessageDto {
+  userId: String!
+  roomchatId: String!
+  messageId: String!
+  content: String
 }
 
 input SignUpDto {
@@ -192,8 +230,32 @@ input CreatePostDto {
   fileUrl: [String!]!
 }
 
+input SharePostDto {
+  userId: String!
+  postId: String!
+  content: String
+  fileUrl: [String!]!
+}
+
 input ValidatePostDto {
   userId: String!
   postId: String!
-  Id: String!
+  content: String
+  fileUrl: [String!]!
+}
+
+input CommentPostDto {
+  userId: String!
+  postId: String!
+  commentId: String
+  content: String!
+  fileUrl: [String!]!
+}
+
+input InteractPostDto {
+  userId: String!
+  postId: String!
+  commentId: String
+  interactionId: String
+  content: String
 }

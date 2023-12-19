@@ -1,8 +1,9 @@
 import { Field, InputType } from "@nestjs/graphql";
 import { IsNotEmpty, IsOptional, IsString } from "class-validator";
 
+
 @InputType()
-export class ValidatePostDto {
+export class ValidateMessageDto {
     @IsString()
     @IsNotEmpty()
     @Field()
@@ -11,15 +12,24 @@ export class ValidatePostDto {
     @IsString()
     @IsNotEmpty()
     @Field()
-    postId: string;
+    roomchatId: string;
+
+    @IsString()
+    @IsNotEmpty()
+    @Field()
+    messageId: string;
 
     @IsString()
     @IsOptional()
     @Field({nullable: true})
-    content: string | null;
+    interactionId?: string | null;
+
+    @IsString()
+    @IsOptional()
+    @Field({nullable: true})
+    content?: string | null;
 
     @IsOptional()
-    @Field(() => [String])
-    fileUrl: string[];
-
+    @Field(() => [String], {nullable: true})
+    fileUrl?: string | null;
 }

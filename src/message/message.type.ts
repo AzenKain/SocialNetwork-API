@@ -1,6 +1,5 @@
 import { Field, ObjectType } from "@nestjs/graphql";
 import { InteractionType } from "src/interaction/interaction.type";
-import { FileType } from "src/media/type";
 
 
 @ObjectType("Message")

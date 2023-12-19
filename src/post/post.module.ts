@@ -1,7 +1,7 @@
 import { Module } from '@nestjs/common';
 import { PostResolver } from './post.resolver';
 import { PostService } from './post.service';
-import { PostEntity } from './post.entity';
+import { PostEntity } from './type/post.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/user/type/user.entity';
 import { PostGateway } from './post.gateway';

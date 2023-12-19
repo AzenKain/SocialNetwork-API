@@ -8,7 +8,7 @@ export class RoomchatType {
     id: string;
 
     @Field()
-    isSingle: boolean;
+    isDisplay: boolean;
 
     @Field()
     ownerUserId: string;

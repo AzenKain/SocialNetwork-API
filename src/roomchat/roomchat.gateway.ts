@@ -52,6 +52,7 @@ export class RoomchatGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     }
     return;
   }
+  
   @SubscribeMessage('sendMessage')
   async sendMessage(@ConnectedSocket() socket: Socket, @MessageBody() payload: any) {
     await this.roomchatService.getPayloadFromSocket(socket);
@@ -59,18 +60,15 @@ export class RoomchatGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     this.server.to(payload.roomchatId).emit("newMessage", newMessage);
   }
 
-  @SubscribeMessage('removeMessage')
-  async removeMessage(@ConnectedSocket() socket: Socket, @MessageBody() payload: any) {
-    await this.roomchatService.getPayloadFromSocket(socket);
-    const removeMessage = await this.roomchatService.sendMessage(payload);
-    this.server.to(payload.roomchatId).emit("removeMessage", removeMessage);
-  }
-
   afterInit(socket: Socket) {
   
   }
 
   async notification(roomId: string, title: string,data: any) {
+    if (roomId === 'AllSERVER') {
+      this.server.emit(title, data)
+      return;
+    }
     this.server.to(roomId).emit(title, data)
   }
 

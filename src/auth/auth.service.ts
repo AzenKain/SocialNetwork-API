@@ -60,7 +60,6 @@ export class AuthService {
         }
         const hash = await argon.hash(userDto.password);
 
-
         const detailUser = new ProfileType()
         detailUser.age = userDto.age;
         detailUser.name = userDto.name;
