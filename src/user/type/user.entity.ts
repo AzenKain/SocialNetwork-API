@@ -2,7 +2,7 @@ import { Column, CreateDateColumn, Entity, ObjectIdColumn, PrimaryColumn, Update
 import { NotificationType } from "./notification.type";
 import { ProfileType } from "./user.type";
 
-@Entity()
+@Entity({ name: 'user' })
 export class User {
     @ObjectIdColumn()
     _id: string;

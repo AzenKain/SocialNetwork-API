@@ -22,15 +22,10 @@ export class SignUpDto {
     @IsDate()
     @IsOptional()
     @Field({ nullable: true })
-    birthday?: string;
+    birthday?: Date;
 
     @IsNumber()
     @IsOptional()
-    @Field(() => Int, { nullable: true })
-    age?: number;
-
-    @IsNumber()
-    @IsOptional()
-    @Field(()=> Int, { nullable: true })
+    @Field({ nullable: true })
     phoneNumber?: number;
 }

@@ -6,13 +6,16 @@ export class CommitType {
     id: string;
 
     @Field()
-    createdUser: string;
+    createdUserId: string;
 
     @Field()
     receiveUserId: string;
 
     @Field()
     value: boolean;
+
+    @Field()
+    isDisplay: boolean;
 
     @Field()
     created_at: Date;

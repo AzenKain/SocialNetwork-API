@@ -31,7 +31,7 @@ export class ValidateUserDto {
     @IsDate()
     @IsOptional()
     @Field({ nullable: true })
-    birthday?: string;
+    birthday?: Date;
 
     @IsNumber()
     @IsOptional()

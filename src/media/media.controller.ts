@@ -10,6 +10,7 @@ export class MediaController {
     constructor(
         private mediaService : MediaService
     ){}
+    
     @Post('upload')
     @UseInterceptors(FileInterceptor('file'))
     uploadFile(

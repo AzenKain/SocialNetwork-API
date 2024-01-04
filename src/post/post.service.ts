@@ -87,6 +87,7 @@ export class PostService {
         newComment.content = comment.content;
         newComment.fileUrl = comment.fileUrl;
         newComment.userId = comment.userId;
+        newComment.roomId = comment.postId;
         newComment.isDisplay = true;
         newPost.comment.push(newComment);
         await this.postRespository.save(newPost);
@@ -143,11 +144,11 @@ export class PostService {
                 }
             );
             if (!payload) {
-                throw new WsException('Invalid credentials.');
+                return null;
             }
             return payload;
         } catch {
-            throw new WsException('Invalid credentials.');
+            return null;
         }
     }
 

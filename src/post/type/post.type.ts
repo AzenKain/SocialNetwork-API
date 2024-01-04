@@ -16,8 +16,8 @@ export class PostType {
     @Field()
     content: string;
 
-    @Field(() => [String])
-    fileUrl: string[];
+    @Field(() => [String], {nullable: true})
+    fileUrl: string[] | null;
 
     @Field()
     isDisplay: boolean;

@@ -14,16 +14,19 @@ export class Message {
     userId: string;
 
     @Column()
+    roomId: string;
+    
+    @Column()
     isDisplay: boolean;
 
     @Column()
     content: string;
 
     @Column()
-    fileUrl: string[];
+    fileUrl: string[] | null;
 
     @Column("simple-json")
-    interaction: InteractionType[];
+    interaction: InteractionType[] | null;
     
     @CreateDateColumn()
     created_at: Date;

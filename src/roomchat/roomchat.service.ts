@@ -2,7 +2,6 @@ import { ForbiddenException, Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
-import { WsException } from '@nestjs/websockets';
 import { Socket } from 'socket.io';
 import { Roomchat } from './type/romchat.entity';
 import { Repository } from 'typeorm';
@@ -11,7 +10,7 @@ import { MemberRoomDto, CreateRoomDto, InteractMessageDto, ValidateMessageDto, V
 import { MessageType } from 'src/message/message.type';
 import { MemberOutType } from './type/romchat.type';
 import { InteractionType } from 'src/interaction/interaction.type';
-
+import { User } from 'src/user/type/user.entity';;
 
 @Injectable()
 export class RoomchatService {
@@ -19,6 +18,7 @@ export class RoomchatService {
         private readonly jwtService: JwtService,
         private config: ConfigService,
         @InjectRepository(Roomchat) private roomchatRespository: Repository<Roomchat>,
+        @InjectRepository(User) private userRespository: Repository<User>,
     ) { }
 
     async getPayloadFromSocket(socket: Socket) {
@@ -32,11 +32,11 @@ export class RoomchatService {
                 }
             );
             if (!payload) {
-                throw new WsException('Invalid credentials.');
+                return null;
             }
             return payload;
         } catch {
-            throw new WsException('Invalid credentials.');
+            return null;
         }
     }
 
@@ -63,10 +63,19 @@ export class RoomchatService {
         newMessage.id = uuidv5(payload.userId + payload.roomchatId + roomchat.data.length, uuidv5.URL);
         newMessage.content = payload.content;
         newMessage.userId = payload.userId;
-        newMessage.fileUrl = payload.fileUrl;
+        if (!payload.fileUrl) {
+            newMessage.fileUrl = []
+        } 
+        else {
+            newMessage.fileUrl = payload.fileUrl;
+        }
+        newMessage.roomId = payload.roomchatId;
         newMessage.isDisplay = true;
+        newMessage.interaction = [];
+        newMessage.created_at = new Date();
+        newMessage.updated_at = new Date();
         roomchat.data.push(newMessage);
-        await this.roomchatRespository.save(newMessage);
+        await this.roomchatRespository.save(roomchat);
         return newMessage;
     }
 
@@ -93,30 +102,85 @@ export class RoomchatService {
     }
 
     async createRoomchat(payload: CreateRoomDto) {
+        const validateUser = await this.userRespository.findOne({
+            where: {
+                id: payload.userId
+            }
+        })
+
+        if (!validateUser) {
+            throw new ForbiddenException(
+                'This user does not exist',
+            );
+        }
+        
+        delete validateUser.hash;
+        delete validateUser.refreshToken;
+        const sortedMembers = [payload.userId, ...payload.member].sort()
+        if (payload.isSingle == true) {
+            const roomchatCre = await this.roomchatRespository.findOne({
+                where: {
+                    isSingle: payload.isSingle,
+                    id: uuidv5(payload.userId + (payload.userId+payload.member[0]) + payload.member.length, uuidv5.URL)
+                }
+            })
+            if (roomchatCre) {
+                return roomchatCre;
+            }
+            const roomchatRe = await this.roomchatRespository.findOne({
+                where: {
+                    isSingle: payload.isSingle,
+                    id: uuidv5(payload.member[0] + (payload.member[0]+payload.userId) + payload.member.length, uuidv5.URL)
+                }
+            })
+            if (roomchatRe) {
+                return roomchatRe;
+            }
+        }
         const roomchat = this.roomchatRespository.create({
-            id: uuidv5(payload.userId, uuidv5.URL),
+            id: uuidv5(payload.userId + payload.title + payload.member.length, uuidv5.URL),
             isDisplay: true,
+            isSingle: payload.isSingle,
             ownerUserId: payload.userId,
-            member: [payload.userId, ...payload.member],
+            title: payload.title,
+            member: sortedMembers, 
             data: [],
             memberOut: [],
             imgDisplay: payload.imgDisplay,
             description: payload.description
         })
+
         return await this.roomchatRespository.save(roomchat);
     }
 
     async validateRoomchat(payload: ValidateRoomDto) {
         const roomchat = await this.getRoomchatById(payload.roomchatId)
+        if (roomchat.ownerUserId != payload.userId) {
+            throw new ForbiddenException(
+                'The user has no permission',
+            );
+        }
         roomchat.imgDisplay = payload.imgDisplay
         roomchat.description = payload.description
         return await this.roomchatRespository.save(roomchat);
     }
+
     async removeRoomChat(payload: ValidateRoomDto) {
         const roomchat = await this.getRoomchatById(payload.roomchatId)
+        if (roomchat.isSingle == true) {
+            throw new ForbiddenException(
+                'The user has no permission',
+            );
+        }
+        if (roomchat.ownerUserId != payload.userId) {
+            throw new ForbiddenException(
+                'The user has no permission',
+            );
+        }
         roomchat.isDisplay = false
         return await this.roomchatRespository.save(roomchat);
     }
+
     async validateMessage(payload: ValidateMessageDto) {
         const roomchat = await this.getRoomchatById(payload.roomchatId)
         let count : number = 0;
@@ -134,7 +198,8 @@ export class RoomchatService {
     async getRoomchatById(roomchatId: string) {
         const roomchat =  await this.roomchatRespository.findOne({
             where: {
-                id: roomchatId
+                id: roomchatId,
+                isDisplay: true,
             }
         });
         if (!roomchat) {
@@ -157,7 +222,7 @@ export class RoomchatService {
             );
         }
         roomchat.member.push(...addMemberRoom.member)
-        roomchat.memberOut.filter(item => !addMemberRoom.member.includes(item.memberId))
+        roomchat.memberOut = roomchat.memberOut.filter(item => !addMemberRoom.member.includes(item.memberId))
         return await this.roomchatRespository.save(roomchat)
     }
 
@@ -172,7 +237,7 @@ export class RoomchatService {
                 'This roomchat does not exist',
             );
         }
-        roomchat.member.filter(item => !removeMemberRoom.member.includes(item))
+        roomchat.member = roomchat.member.filter(item => !removeMemberRoom.member.includes(item))
         for (const item of roomchat.member) {
             const memberOut : MemberOutType = new MemberOutType();
             memberOut.memberId = item;
@@ -225,7 +290,7 @@ export class RoomchatService {
         const dataMemberJoin = await this.roomchatRespository.find({
             where: {
                 member: userId,
-                isDisplay: true
+                isDisplay: true,
             }
         });
         const dataMemberOut = await this.roomchatRespository.find({

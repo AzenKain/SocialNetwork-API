@@ -5,10 +5,11 @@ import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { ChangePasswordDto, FriendDto, NotificationDto, ValidateUserDto } from './dto';
-import { CommitEntity } from './type/commit.entity';
+import { CommitEntity } from '../commit/commit.entity';
 import { v5 as uuidv5 } from 'uuid';
 import { NotificationType } from './type/notification.type';
 import * as argon from 'argon2';
+
 
 @Injectable()
 export class UserService {
@@ -16,7 +17,7 @@ export class UserService {
         private jwt: JwtService,
         private config: ConfigService,
         @InjectRepository(User) private userRepository: Repository<User>,
-        @InjectRepository(User) private commitRepository: Repository<CommitEntity>,
+        @InjectRepository(CommitEntity) private commitRepository: Repository<CommitEntity>,
     ) {}
     
     async getUser(userId: string): Promise<User> {
@@ -34,7 +35,38 @@ export class UserService {
         delete user.refreshToken;
         return user;
     }
-    
+    async findUser(content: string) {
+        if (content.includes('@')) {
+            const dataRe = await this.userRepository.find({
+                where: {
+                    email: content
+                }
+            })
+            for (const userIndex in dataRe) {
+                delete dataRe[userIndex].hash
+                delete dataRe[userIndex].refreshToken
+            }
+            return dataRe
+        }
+        else {
+            const dataUser = await this.userRepository.find({})
+            const dataRe = [];
+            for (const userIndex in dataUser) {
+                if (!('detail' in dataUser[userIndex])) continue;
+                if (dataUser[userIndex].detail.name && dataUser[userIndex].detail.name.toLowerCase().includes(content.toLowerCase())) {
+                    delete dataUser[userIndex].hash
+                    delete dataUser[userIndex].refreshToken
+                    dataRe.push(dataUser[userIndex])
+                }
+                else if (dataUser[userIndex].detail.nickName && dataUser[userIndex].detail.nickName.toLowerCase().includes(content.toLowerCase())) {
+                    delete dataUser[userIndex].hash
+                    delete dataUser[userIndex].refreshToken
+                    dataRe.push(dataUser[userIndex])
+                }
+            }
+            return dataRe
+        }
+    }
     async changePassword(payload: ChangePasswordDto) {
         const user = await this.userRepository.findOne({
             where : {
@@ -85,11 +117,59 @@ export class UserService {
     async addFriendToUser(userId: string, friendId: string) {
         const user = await this.getUser(userId);
         user.friends.push(friendId);
+        return await this.userRepository.save(user);
     }
+    
+
     async removeFriendToUser(userId: string, friendId: string) {
         const user = await this.getUser(userId);
-        user.friends.filter(item => item !== friendId)
+        user.friends = user.friends.filter(item => item !== friendId)
         return await this.userRepository.save(user);
+    }
+
+    async getFriendRequest(userId : string) {
+        const dataCre =  await this.commitRepository.find({
+            where: {
+                createdUserId: userId,
+                value: false,
+                isDisplay: true
+            }
+        })       
+        const dataRec = await this.commitRepository.find({
+            where: {
+                receiveUserId: userId,
+                value: false,
+                isDisplay: true
+            }
+        })
+        const dataReturn = [...dataRec, ...dataCre]
+        return dataReturn
+    }
+
+    async deleteFriendCommit(userId: string, friendId: string) {
+        const dataCre = await this.commitRepository.findOne({
+            where: {
+                isDisplay: true,
+                createdUserId: userId,
+                receiveUserId: friendId,
+            }
+        })
+        if (dataCre) {
+            dataCre.isDisplay = false
+            return this.commitRepository.save(dataCre)
+        }
+        else {
+            const dataRec = await this.commitRepository.findOne({
+                where: {
+                    isDisplay: true,
+                    createdUserId: friendId,
+                    receiveUserId: userId,
+                }
+            })
+            dataRec.isDisplay = false
+            return this.commitRepository.save(dataRec)
+        }
+        
     }
 
     async addFriend(payload : FriendDto) {
@@ -97,26 +177,29 @@ export class UserService {
             id : uuidv5(payload.userId + payload.friendId, uuidv5.URL),
             createdUserId: payload.userId,
             receiveUserId: payload.friendId,
-            value: false
+            value: false,
+            isDisplay: true
         })
-        return await this.userRepository.save(newCommit)
+        return await this.commitRepository.save(newCommit)
     }
 
     async receiveFriend(payload : FriendDto) {
         const newCommit = await this.commitRepository.findOne({
             where: {
                 createdUserId: payload.friendId,
+                isDisplay: true
             }
         })
         newCommit.value = true;
         await this.addFriendToUser(payload.userId, payload.friendId)
         await this.addFriendToUser(payload.friendId, payload.userId)
-        return await this.userRepository.save(newCommit)
+        return await this.commitRepository.save(newCommit)
     }
 
     async removeFriend(payload : FriendDto) {
         await this.removeFriendToUser(payload.friendId, payload.userId)
-        return await this.removeFriendToUser(payload.userId, payload.friendId)
+        await this.removeFriendToUser(payload.userId, payload.friendId)
+        return await this.deleteFriendCommit(payload.userId, payload.friendId)
     }
 
     async addNotification(payload : NotificationDto) {

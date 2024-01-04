@@ -29,8 +29,15 @@ export class PostGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   async handleConnection(socket: Socket) {
     const data = await this.postService.getPayloadFromSocket(socket);
     try {
+      if (data == null) {
+        socket.disconnect();
+        return;
+      }
       const userId = data.id;
-      if (!userId) socket.disconnect();
+      if (!userId) {
+        socket.disconnect();
+        return;
+      }
       this.connectedClients.set(userId, socket);
       socket.join(userId);
       const user = await this.userRespository.findOne({

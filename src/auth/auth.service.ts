@@ -61,7 +61,7 @@ export class AuthService {
         const hash = await argon.hash(userDto.password);
 
         const detailUser = new ProfileType()
-        detailUser.age = userDto.age;
+        detailUser.age = null;
         detailUser.name = userDto.name;
         detailUser.phoneNumber = userDto.phoneNumber;
         detailUser.birthday = userDto.birthday;
@@ -76,6 +76,7 @@ export class AuthService {
             refreshToken: uuidv4(),
             isOnline: false,
             notification: [],
+            friends: [],
             detail: detailUser
         })
 
@@ -126,7 +127,7 @@ export class AuthService {
         };
     }
     
-    async Refresh(userId: string): Promise<{ access_token: string}> {
+    async Refresh(userId: string): Promise<{ access_token: string, refresh_token: string }> {
         const userLogin = await this.userRespository.findOne({
             where: {
                 id: userId
@@ -146,6 +147,6 @@ export class AuthService {
                 secret: this.config.get('JWT_SECRET'),
             },
         );
-        return { access_token: accessToken }
+        return { access_token: accessToken, refresh_token: userLogin.refreshToken };
     }
 }

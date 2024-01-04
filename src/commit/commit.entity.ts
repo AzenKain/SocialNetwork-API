@@ -1,6 +1,6 @@
 import { Column, CreateDateColumn, Entity, ObjectIdColumn, PrimaryColumn, UpdateDateColumn } from "typeorm";
 
-@Entity()
+@Entity({ name: 'commit' })
 export class CommitEntity {
     @ObjectIdColumn()
     _id: string;
@@ -16,6 +16,9 @@ export class CommitEntity {
 
     @Column()
     value: boolean;
+
+    @Column()
+    isDisplay: boolean;
 
     @CreateDateColumn()
     created_at: Date;

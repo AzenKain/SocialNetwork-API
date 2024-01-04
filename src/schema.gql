@@ -19,7 +19,7 @@ scalar DateTime
 type ProfileType {
   name: String!
   nickName: String
-  birthday: String
+  birthday: DateTime
   age: Float
   description: String
   phoneNumber: Float
@@ -31,8 +31,10 @@ type User {
   email: String!
   hash: String!
   refreshToken: String!
+  isOnline: Boolean!
   detail: ProfileType!
-  notification: NotificationType!
+  friends: [String!]
+  notification: [NotificationType!]
   created_at: DateTime!
   updated_at: DateTime!
 }
@@ -49,17 +51,20 @@ type Interaction {
 type Message {
   id: String!
   userId: String!
+  roomId: String!
   isDisplay: Boolean!
   content: String!
-  fileUrl: [String!]!
-  interaction: [Interaction!]!
+  fileUrl: [String!]
+  interaction: [Interaction!]
   created_at: DateTime!
   updated_at: DateTime!
 }
 
 type Roomchat {
   id: String!
+  title: String
   isDisplay: Boolean!
+  isSingle: Boolean!
   ownerUserId: String!
   description: String
   imgDisplay: String
@@ -73,6 +78,16 @@ type Roomchat {
 type MemberOut {
   memberId: String!
   messageCount: Float!
+  created_at: DateTime!
+  updated_at: DateTime!
+}
+
+type Commit {
+  id: String!
+  createdUserId: String!
+  receiveUserId: String!
+  value: Boolean!
+  isDisplay: Boolean!
   created_at: DateTime!
   updated_at: DateTime!
 }
@@ -95,7 +110,7 @@ type Post {
   ownerUserId: String!
   linkedShare: String
   content: String!
-  fileUrl: [String!]!
+  fileUrl: [String!]
   isDisplay: Boolean!
   interaction: [Interaction!]!
   comment: [Message!]!
@@ -105,9 +120,11 @@ type Post {
 
 type Query {
   getUser(id: String!): User!
-  acceptFriendUser(acceptFriend: FriendDto!): User!
+  findUser(content: String!): [User!]!
+  acceptFriendUser(acceptFriend: FriendDto!): Commit!
+  getFriendRequest(id: String!): [Commit!]!
   getAllRomchatByUserId(id: String!): [Roomchat!]!
-  getRomchatById(id: String!): Roomchat!
+  getRomchatById(roomchatId: String!): Roomchat!
   Login(userDto: AuthDto!): AuthResponse!
   logout(id: String!): LogoutResponse!
   Refresh(id: String!): AuthResponse!
@@ -128,8 +145,8 @@ input AuthDto {
 type Mutation {
   validateUser(validateUser: ValidateUserDto!): User!
   changePassword(changePassword: ChangePasswordDto!): User!
-  addFriendUser(addFriend: FriendDto!): User!
-  removeFriendUser(addFriend: FriendDto!): User!
+  addFriendUser(addFriend: FriendDto!): Commit!
+  removeFriendUser(removeFriend: FriendDto!): Commit!
   addNotificationUser(addNotification: NotificationDto!): User!
   createRoomChat(createRoom: CreateRoomDto!): Roomchat!
   removeRoomChat(removeRoomChat: ValidateRoomDto!): NullResponse!
@@ -160,7 +177,7 @@ input ValidateUserDto {
   nickName: String!
   description: String!
   avatarUrl: String!
-  birthday: String
+  birthday: DateTime
   age: Int
   phoneNumber: Int
 }
@@ -181,6 +198,8 @@ input NotificationDto {
 
 input CreateRoomDto {
   userId: String!
+  isSingle: Boolean!
+  title: String!
   member: [String!]!
   description: String
   imgDisplay: String
@@ -188,6 +207,7 @@ input CreateRoomDto {
 
 input ValidateRoomDto {
   userId: String!
+  title: String!
   roomchatId: String!
   description: String
   imgDisplay: String
@@ -219,9 +239,8 @@ input SignUpDto {
   email: String!
   password: String!
   name: String!
-  birthday: String
-  age: Int
-  phoneNumber: Int
+  birthday: DateTime
+  phoneNumber: Float
 }
 
 input CreatePostDto {

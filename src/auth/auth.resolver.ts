@@ -3,7 +3,7 @@ import { AuthService } from './auth.service';
 import { AuthDto, SignUpDto } from './dto';
 import { AuthResponseType, LogoutResponseType } from './type';
 import { UseGuards } from '@nestjs/common';
-import { JwtGuardGql } from './guard';
+import { JwtGuardGql, JwtGuardGqlRefresh } from './guard';
 import { AuthGuard } from '@nestjs/passport';
 
 @Resolver()
@@ -33,7 +33,7 @@ export class AuthResolver {
     ) {
         return this.authService.Signup(userDto);
     }
-    @UseGuards(AuthGuard('jwt-refresh'))
+    @UseGuards(JwtGuardGqlRefresh)
     @Query(() => AuthResponseType)
     Refresh(
         @Args('id') userId: string,

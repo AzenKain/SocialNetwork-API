@@ -49,7 +49,7 @@ export class MediaService {
 
         await deleteObject(storageRef);
 
-        return "Delete file completed!"
+        return {response: "Delete file completed!"}
 
     }
 

@@ -28,9 +28,9 @@ export class RoomchatResolver {
     @HttpCode(200)
     @Query(() => RoomchatType)
     getRomchatById(
-        @Args('id') id: string
+        @Args('roomchatId') roomchatId: string,
     ) {
-        return this.roomchatService.getRoomchatById(id);
+        return this.roomchatService.getRoomchatById(roomchatId);
     }
 
     @HttpCode(201)
@@ -51,6 +51,7 @@ export class RoomchatResolver {
     ) {
         await this.roomchatService.removeRoomChat(validateRoom)
         await this.roomchatGateway.notification(validateRoom.roomchatId, "removeRoom", validateRoom)
+        return {data : null}
     }
 
     @HttpCode(201)
@@ -72,6 +73,7 @@ export class RoomchatResolver {
         const newRoom = await this.roomchatService.removeUserFromRoomchat(removeMemberRoom)
         await this.roomchatGateway.leaveMembersRoomchat(newRoom.id, newRoom.member);
         await this.roomchatGateway.notification(newRoom.id, "removeMember", removeMemberRoom)
+        return {data : null}
     }
 
     @HttpCode(204)
@@ -81,6 +83,7 @@ export class RoomchatResolver {
     ) {
         await this.roomchatService.removeMessage(removeMessage)
         await this.roomchatGateway.notification(removeMessage.roomchatId, "removeMessage", removeMessage)
+        return {data : null}
     }
 
     @HttpCode(201)
@@ -100,6 +103,7 @@ export class RoomchatResolver {
     ) {
         await this.roomchatService.removeInteractMessage(message)
         await this.roomchatGateway.notification(message.roomchatId, "removeInteractMessage", message)
+        return {data : null}
     }
 
     @HttpCode(201)

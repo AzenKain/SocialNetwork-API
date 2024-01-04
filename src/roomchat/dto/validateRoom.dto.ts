@@ -7,6 +7,11 @@ export class ValidateRoomDto {
     @IsNotEmpty()
     @Field()
     userId: string;
+    
+    @IsString()
+    @IsNotEmpty()
+    @Field()
+    title: string;
 
     @IsString()
     @IsNotEmpty()

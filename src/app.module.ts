@@ -16,7 +16,8 @@ import { PostModule } from './post/post.module';
 import { InteractionModule } from './interaction/interaction.module';
 import { Roomchat } from './roomchat/type/romchat.entity';
 import { PostEntity } from './post/type/post.entity';
-import { CommitEntity } from './user/type/commit.entity';
+import { CommitEntity } from './commit/commit.entity';
+import { CommitModule } from './commit/commit.module';
 
 
 @Module({
@@ -58,6 +59,7 @@ import { CommitEntity } from './user/type/commit.entity';
     MessageModule,
     PostModule,
     InteractionModule,
+    CommitModule,
     
   ],
   controllers: [],

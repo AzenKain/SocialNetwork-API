@@ -10,7 +10,7 @@ export class ProfileType {
     nickName?: string | null;
 
     @Field({ nullable: true })
-    birthday?: string | null;
+    birthday?: Date | null;
 
     @Field({ nullable: true })
     age?: number | null;
@@ -39,11 +39,17 @@ export class UserType {
     @Field()
     refreshToken: string;
 
+    @Field()
+    isOnline: boolean;
+
     @Field(()=> ProfileType)
     detail: ProfileType;
 
-    @Field(()=> NotificationType)
-    notification: NotificationType;
+    @Field(() => [String],{ nullable: true })
+    friends: string[];
+    
+    @Field(()=> [NotificationType],{ nullable: true })
+    notification: NotificationType[];
 
     @Field()
     created_at: Date;

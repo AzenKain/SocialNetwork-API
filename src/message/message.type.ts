@@ -11,16 +11,20 @@ export class MessageType {
     userId: string;
 
     @Field()
+    roomId: string;
+
+    @Field()
     isDisplay: boolean;
 
     @Field()
     content: string;
     
-    @Field(() => [String])
-    fileUrl: string[];
+    @Field(() => [String], {nullable: true})
+    fileUrl: string[] | null;
 
-    @Field(() => [InteractionType])
-    interaction: InteractionType[];
+    @Field(() => [InteractionType], {nullable: true})
+    interaction: InteractionType[] | null;
+    
     @Field()
     created_at: Date;
     

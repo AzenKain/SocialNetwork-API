@@ -10,6 +10,12 @@ export class Roomchat {
 
     @PrimaryColumn()
     id: string;
+    
+    @Column()
+    title: string;
+
+    @Column()
+    isSingle: boolean;
 
     @Column()
     isDisplay: boolean;

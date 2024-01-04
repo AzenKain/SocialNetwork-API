@@ -72,6 +72,7 @@ export class PostResolver {
     ) {
         await this.postService.removePostById(RemovePost)
         await this.postGateway.notification(RemovePost.postId, "removePost", RemovePost)
+        return {data : null}
     }
 
     @HttpCode(201)
@@ -139,5 +140,6 @@ export class PostResolver {
     ) {
         await this.postService.removeInteractMessage(interactComment)
         await this.postGateway.notification(interactComment.postId, "removeInteractionComment", interactComment)
+        return {data : null}
     }
 }
