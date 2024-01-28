@@ -18,7 +18,10 @@ import { Roomchat } from './roomchat/type/romchat.entity';
 import { PostEntity } from './post/type/post.entity';
 import { CommitEntity } from './commit/commit.entity';
 import { CommitModule } from './commit/commit.module';
-
+import { MailerModule } from '@nestjs-modules/mailer/';
+import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
+import { OtpCode } from './user/type/otpCode.entity';
+import { PaymentModule } from './payment/payment.module';
 
 @Module({
   imports: [
@@ -45,7 +48,8 @@ import { CommitModule } from './commit/commit.module';
         FileUpload,
         Roomchat,
         PostEntity,
-        CommitEntity
+        CommitEntity,
+        OtpCode
       ]
     }),
     AuthModule,
@@ -60,7 +64,33 @@ import { CommitModule } from './commit/commit.module';
     PostModule,
     InteractionModule,
     CommitModule,
-    
+    MailerModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (config: ConfigService) => ({
+        // transport: config.get('MAIL_TRANSPORT'),
+        transport: {
+          host: config.get('MAIL_HOST'),
+          secure: false,
+          auth: {
+            user: config.get('MAIL_USER'),
+            pass: config.get('MAIL_PASSWORD'),
+          },
+          port: 587,
+        },
+        defaults: {
+          from: `"No Reply" <${config.get('MAIL_FROM')}>`,
+        },
+        template: {
+          dir: process.cwd() + '/templates/',
+          adapter: new HandlebarsAdapter(),
+          options: {
+            strict: true,
+          },
+        },
+      }),
+      inject: [ConfigService],
+    }),
+    PaymentModule,
   ],
   controllers: [],
   providers: [],

@@ -1,4 +1,5 @@
 import { Field, ObjectType } from "@nestjs/graphql";
+import { GraphQLJSONObject } from "graphql-type-json";
 import { MessageType } from "src/message/message.type";
 
 
@@ -17,6 +18,9 @@ export class RoomchatType {
     isSingle: boolean;
 
     @Field()
+    isBlock: boolean;
+
+    @Field()
     ownerUserId: string;
 
     @Field({nullable: true})
@@ -33,6 +37,7 @@ export class RoomchatType {
 
     @Field(() => [MessageType])
     data: MessageType[];
+
 
     @Field()
     created_at: Date;

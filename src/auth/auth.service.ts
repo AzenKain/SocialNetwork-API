@@ -6,9 +6,10 @@ import { Repository } from 'typeorm';
 import * as argon from 'argon2';
 import { v5 as uuidv5 } from 'uuid';
 import { v4 as uuidv4 } from 'uuid';
-import { AuthDto, SignUpDto } from './dto';
+import { AdminDto, AuthDto, CommandDto, SignUpDto } from './dto';
 import { ProfileType } from 'src/user/type/user.type';
 import { User } from '../user/type/user.entity';
+import { OtpCode } from 'src/user/type/otpCode.entity';
 
 @Injectable()
 export class AuthService {
@@ -16,7 +17,85 @@ export class AuthService {
         private jwt: JwtService,
         private config: ConfigService,
         @InjectRepository(User) private userRespository: Repository<User>,
+        @InjectRepository(OtpCode) private otpCodeRepository: Repository<OtpCode>,
     ) { }
+
+    async addAdmin(dto: AdminDto) {
+        const userAdmin = await this.userRespository.findOne({
+            where: {
+                id: dto.userId,
+            }
+        });
+
+        if (!userAdmin) {
+            throw new ForbiddenException(
+                'This user does not exist',
+            );
+        }
+        
+        if (dto.secretKey != this.config.get('JWT_REFRESH_SECRET')) {
+            throw new ForbiddenException(
+                'You have no authority',
+            );
+        }
+        
+        userAdmin.role = "ADMIN";
+        this.userRespository.save(userAdmin);
+        return {status: true}
+    }
+
+    async commandAdmin(command : CommandDto) {
+        const userAdmin = await this.userRespository.findOne({
+            where: {
+                id: command.adminId,
+            }
+        });
+
+        if (!userAdmin) {
+            throw new ForbiddenException(
+                'This admin does not exist',
+            );
+        }
+
+        if (userAdmin.role !== "ADMIN") {
+            throw new ForbiddenException(
+                'You have no authority',
+            );
+        }
+
+        const userSelect = await this.userRespository.findOne({
+            where: {
+                id: command.userId,
+            }
+        });
+
+        if (!userSelect)
+        throw new ForbiddenException(
+            'This user does not exist',
+        );
+
+        if (command.command === "REMOVEADMIN") {
+            userSelect.role = "USER";
+            this.userRespository.save(userSelect);
+            return {status: true}
+        }
+
+        if (userSelect.role === "ADMIN") {
+            throw new ForbiddenException(
+                'You have no authority',
+            );
+        }
+        if (command.command === "BANNED") {
+            userSelect.role = "BANNED";
+            this.userRespository.save(userSelect);
+        }
+
+        if (command.command === "UNBANNED") {
+            userSelect.role = "UNBANNED";
+            this.userRespository.save(userSelect);
+        }
+        return {status: true}
+    }
 
     async Login(userDto: AuthDto) {
         const userLogin = await this.userRespository.findOne({
@@ -43,19 +122,35 @@ export class AuthService {
         await this.updateRefreshToken(userLogin.id, token.refresh_token)
         return token;
     }
+
     async Logout(userId: string) {
         await this.updateRefreshToken(userId, null);
         return null;
     }
+
     async Signup(userDto: SignUpDto) {
         const checkMail = await this.userRespository.findOne({
             where: {
                 email: userDto.email,
             }
         })
+
         if (checkMail != null) {
             throw new ForbiddenException(
                 'This email was existed before',
+            );
+        }
+        const dataOtp = await this.otpCodeRepository.findOne({
+            where: {
+                id: userDto.otpId,
+                email: userDto.email,
+                type: "SignUp"
+            }
+        })
+
+        if (!dataOtp) {
+            throw new ForbiddenException(
+                'The user have not OTP CODE',
             );
         }
         const hash = await argon.hash(userDto.password);
@@ -77,7 +172,9 @@ export class AuthService {
             isOnline: false,
             notification: [],
             friends: [],
-            detail: detailUser
+            detail: detailUser,
+            bookMarks: [],
+            role: "USER"
         })
 
         const newUser = await this.userRespository.save(UserCre);

@@ -21,6 +21,9 @@ export class Roomchat {
     isDisplay: boolean;
 
     @Column()
+    isBlock: boolean;
+
+    @Column()
     ownerUserId: string;
 
     @Column()
@@ -37,6 +40,9 @@ export class Roomchat {
 
     @Column("simple-json")
     data: MessageType[];
+
+    @Column("simple-json")
+    memberNickname: Record<string, string>;
     
     @CreateDateColumn()
     created_at: Date;

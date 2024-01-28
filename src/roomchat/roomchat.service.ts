@@ -11,6 +11,7 @@ import { MessageType } from 'src/message/message.type';
 import { MemberOutType } from './type/romchat.type';
 import { InteractionType } from 'src/interaction/interaction.type';
 import { User } from 'src/user/type/user.entity';;
+import * as otpGenerator from 'otp-generator';
 
 @Injectable()
 export class RoomchatService {
@@ -59,8 +60,20 @@ export class RoomchatService {
                 'This roomchat does not exist',
             );
         }
+        let generatedOTP: string = otpGenerator.generate(10, {digits: false, upperCaseAlphabets: false, specialChars: false });
+        let megsId: string = uuidv5(payload.userId + payload.roomchatId + roomchat.data.length + generatedOTP, uuidv5.URL);
+
+        while (true) {
+            if (roomchat.data.findIndex(comment => comment.id === megsId) !== -1) {
+                generatedOTP = otpGenerator.generate(10, {digits: false, upperCaseAlphabets: false, specialChars: false });
+                megsId = uuidv5(payload.userId + payload.roomchatId + roomchat.data.length + generatedOTP, uuidv5.URL);
+            }
+            else {
+                break;
+            }
+        }
         const newMessage: MessageType = new MessageType()
-        newMessage.id = uuidv5(payload.userId + payload.roomchatId + roomchat.data.length, uuidv5.URL);
+        newMessage.id = megsId;
         newMessage.content = payload.content;
         newMessage.userId = payload.userId;
         if (!payload.fileUrl) {
@@ -90,14 +103,13 @@ export class RoomchatService {
                 'This roomchat does not exist',
             );
         }
-        let count : number = 0;
-        for (let i : number = 0; i < roomchat.data.length; i++) {
-            if (roomchat.data[i].id == payload.messageId) {
-                count = i;
-                break;
-            }
+        const indexMeg = roomchat.data.findIndex(comment => comment.id === payload.messageId);
+        if (indexMeg == -1) {
+            throw new ForbiddenException(
+                'This messages does not exist',
+            );
         }
-        roomchat.data[count].isDisplay = false;
+        roomchat.data[indexMeg].isDisplay = false;
         await this.roomchatRespository.save(roomchat);
     }
 
@@ -110,7 +122,7 @@ export class RoomchatService {
 
         if (!validateUser) {
             throw new ForbiddenException(
-                'This user does not exist',
+                `This userId (${payload.userId}) does not exist`,
             );
         }
         
@@ -121,7 +133,7 @@ export class RoomchatService {
             const roomchatCre = await this.roomchatRespository.findOne({
                 where: {
                     isSingle: payload.isSingle,
-                    id: uuidv5(payload.userId + (payload.userId+payload.member[0]) + payload.member.length, uuidv5.URL)
+                    title: payload.member[0] + payload.userId
                 }
             })
             if (roomchatCre) {
@@ -130,15 +142,34 @@ export class RoomchatService {
             const roomchatRe = await this.roomchatRespository.findOne({
                 where: {
                     isSingle: payload.isSingle,
-                    id: uuidv5(payload.member[0] + (payload.member[0]+payload.userId) + payload.member.length, uuidv5.URL)
+                    title: payload.userId + payload.member[0]
                 }
             })
             if (roomchatRe) {
                 return roomchatRe;
             }
         }
+       
+        let generatedOTP: string = otpGenerator.generate(10, {digits: false, upperCaseAlphabets: false, specialChars: false });
+        let roomId: string = uuidv5(payload.userId + payload.title + payload.member.length + generatedOTP, uuidv5.URL);
+
+        while (true) {
+            const roomSelect =  await this.roomchatRespository.findOne({
+                where: {
+                    id: roomId
+                }
+            });
+            if (roomSelect) {
+                generatedOTP = otpGenerator.generate(10, {digits: false, upperCaseAlphabets: false, specialChars: false });
+                roomId = uuidv5(payload.userId + payload.title + payload.member.length + generatedOTP, uuidv5.URL)
+            }
+            else {
+                break;
+            }
+        }
+     
         const roomchat = this.roomchatRespository.create({
-            id: uuidv5(payload.userId + payload.title + payload.member.length, uuidv5.URL),
+            id: roomId,
             isDisplay: true,
             isSingle: payload.isSingle,
             ownerUserId: payload.userId,
@@ -162,6 +193,9 @@ export class RoomchatService {
         }
         roomchat.imgDisplay = payload.imgDisplay
         roomchat.description = payload.description
+        if (roomchat.isSingle == false) {
+            roomchat.title = payload.title;
+        }
         return await this.roomchatRespository.save(roomchat);
     }
 
@@ -177,24 +211,25 @@ export class RoomchatService {
                 'The user has no permission',
             );
         }
+ 
         roomchat.isDisplay = false
         return await this.roomchatRespository.save(roomchat);
     }
 
     async validateMessage(payload: ValidateMessageDto) {
         const roomchat = await this.getRoomchatById(payload.roomchatId)
-        let count : number = 0;
-        for (let i : number = 0; i < roomchat.data.length; i++) {
-            if (roomchat.data[i].id == payload.messageId) {
-                count = i;
-                break;
-            }
+        const indexMeg = roomchat.data.findIndex(comment => comment.id === payload.messageId);
+        if (indexMeg == -1) {
+            throw new ForbiddenException(
+                'This messages does not exist',
+            );
         }
-        roomchat.data[count].content = payload.content;
-        roomchat.data[count].content = payload.fileUrl;
+        roomchat.data[indexMeg].content = payload.content;
+        roomchat.data[indexMeg].content = payload.fileUrl;
         await this.roomchatRespository.save(roomchat)
-        return roomchat.data[count]
+        return roomchat.data[indexMeg]
     }
+
     async getRoomchatById(roomchatId: string) {
         const roomchat =  await this.roomchatRespository.findOne({
             where: {
@@ -202,6 +237,22 @@ export class RoomchatService {
                 isDisplay: true,
             }
         });
+        if (!roomchat) {
+            throw new ForbiddenException(
+                'This roomchat does not exist',
+            );
+        }
+        return roomchat;
+    }
+
+    async getRoomchatByTitle(roomchatTitle: string) {
+        const roomchat =  await this.roomchatRespository.findOne({
+            where: {
+                title: roomchatTitle,
+                isDisplay: true,
+            }
+        });
+        
         if (!roomchat) {
             throw new ForbiddenException(
                 'This roomchat does not exist',
@@ -221,6 +272,11 @@ export class RoomchatService {
                 'This roomchat does not exist',
             );
         }
+        if (roomchat.isSingle == true) {
+            throw new ForbiddenException(
+                'The user has no permission',
+            );
+        }
         roomchat.member.push(...addMemberRoom.member)
         roomchat.memberOut = roomchat.memberOut.filter(item => !addMemberRoom.member.includes(item.memberId))
         return await this.roomchatRespository.save(roomchat)
@@ -237,6 +293,11 @@ export class RoomchatService {
                 'This roomchat does not exist',
             );
         }
+        if (roomchat.isSingle == true) {
+            throw new ForbiddenException(
+                'The user has no permission',
+            );
+        }
         roomchat.member = roomchat.member.filter(item => !removeMemberRoom.member.includes(item))
         for (const item of roomchat.member) {
             const memberOut : MemberOutType = new MemberOutType();
@@ -249,21 +310,31 @@ export class RoomchatService {
 
     async addInteractMessage(payload: InteractMessageDto) {
         const roomchat= await this.getRoomchatById(payload.roomchatId)
-        const newInteraction = new InteractionType();
-        newInteraction.id = uuidv5(payload.userId + payload + roomchat.data.length, uuidv5.URL);
-        newInteraction.content = payload.content;
-        newInteraction.userId = payload.userId;
-        newInteraction.isDisplay = true;
-        let countComment: number = 0;
-        for (let i : number = 0; i < roomchat.data.length; i++) {
-            if (roomchat.data[i].id === payload.messageId) {
-                countComment = i;
+        const indexMeg = roomchat.data.findIndex(comment => comment.id === payload.messageId);
+        if (indexMeg == -1) {
+            throw new ForbiddenException(
+                'This messages does not exist',
+            );
+        }
+        let generatedOTP: string = otpGenerator.generate(10, {digits: false, upperCaseAlphabets: false, specialChars: false });
+        let interactionId: string = uuidv5(payload.userId + payload + roomchat.data.length + generatedOTP, uuidv5.URL);
+        while (true) {
+            if (roomchat.data[indexMeg].interaction.findIndex(inter => inter.id === interactionId) !== -1) {
+                generatedOTP = otpGenerator.generate(10, {digits: false, upperCaseAlphabets: false, specialChars: false });
+                interactionId = uuidv5(payload.userId + payload + roomchat.data.length + generatedOTP, uuidv5.URL);
+            }
+            else {
                 break;
             }
         }
-        roomchat.data[countComment].interaction.push(newInteraction);
+        const newInteraction = new InteractionType();
+        newInteraction.id = interactionId;
+        newInteraction.content = payload.content;
+        newInteraction.userId = payload.userId;
+        newInteraction.isDisplay = true;
+        roomchat.data[indexMeg].interaction.push(newInteraction);
         await this.roomchatRespository.save(roomchat);
-        return roomchat.data[countComment];
+        return roomchat.data[indexMeg];
     }
 
     async removeInteractMessage(payload: ValidateMessageDto) {

@@ -20,10 +20,16 @@ export class User {
     refreshToken: string;
 
     @Column()
+    role: string;
+    
+    @Column()
     isOnline: boolean;
 
     @Column()
     friends: string[];
+
+    @Column()
+    bookMarks: string[];
 
     @Column("simple-json")
     detail: ProfileType;

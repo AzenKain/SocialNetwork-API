@@ -33,6 +33,14 @@ export class RoomchatResolver {
         return this.roomchatService.getRoomchatById(roomchatId);
     }
 
+    @HttpCode(200)
+    @Query(() => RoomchatType)
+    getRomchatByTitle(
+        @Args('roomchatId') roomchatId: string,
+    ) {
+        return this.roomchatService.getRoomchatByTitle(roomchatId);
+    }
+
     @HttpCode(201)
     @Mutation(() => RoomchatType)
     async createRoomChat(

@@ -25,8 +25,14 @@ export class MediaController {
         return this.mediaService.deleteFile(id);
     }
 
-    @Get(':id')
-    getFile(@Param('id') id: string) {
-        return this.mediaService.getFile(id);
+    @Get('id/:id')
+    getFileById(@Param('id') id: string) {
+        return this.mediaService.getFileByID(id);
+    }
+
+
+    @Post('url')
+    getFile(@Body('fileUrl') fileUrl: string,) {
+        return this.mediaService.getFileByUrl(fileUrl);
     }
 }

@@ -25,7 +25,7 @@ export class ValidateUserDto {
 
     @IsString()
     @IsOptional()
-    @Field()
+    @Field({ nullable: true })
     avatarUrl?: string;
 
     @IsDate()

@@ -31,9 +31,11 @@ type User {
   email: String!
   hash: String!
   refreshToken: String!
+  role: String!
   isOnline: Boolean!
   detail: ProfileType!
   friends: [String!]
+  bookMarks: [String!]
   notification: [NotificationType!]
   created_at: DateTime!
   updated_at: DateTime!
@@ -96,6 +98,11 @@ type NullResponse {
   data: String
 }
 
+type BookmarkType {
+  userId: String!
+  bookmarkId: String!
+}
+
 type AuthResponse {
   access_token: String!
   refresh_token: String!
@@ -108,6 +115,7 @@ type LogoutResponse {
 type Post {
   id: String!
   ownerUserId: String!
+  type: String!
   linkedShare: String
   content: String!
   fileUrl: [String!]
@@ -118,23 +126,39 @@ type Post {
   updated_at: DateTime!
 }
 
+type Payment {
+  status: String!
+  url: String!
+}
+
 type Query {
   getUser(id: String!): User!
   findUser(content: String!): [User!]!
   acceptFriendUser(acceptFriend: FriendDto!): Commit!
+  forgetPasswordValidate(forgetPassword: ForgetPasswordDto!): User!
   getFriendRequest(id: String!): [Commit!]!
   getAllRomchatByUserId(id: String!): [Roomchat!]!
   getRomchatById(roomchatId: String!): Roomchat!
+  getRomchatByTitle(roomchatId: String!): Roomchat!
   Login(userDto: AuthDto!): AuthResponse!
   logout(id: String!): LogoutResponse!
   Refresh(id: String!): AuthResponse!
-  getAllPostByUserId(id: String!): [Post!]!
+  getAllPostByUserId(userId: String!): [Post!]!
+  getDailyPostByUserId(userId: String!): [Post!]!
+  searchPost(content: String!): [Post!]!
   getPostById(id: String!): Post!
 }
 
 input FriendDto {
   userId: String!
   friendId: String!
+}
+
+input ForgetPasswordDto {
+  userId: String!
+  otpCode: String!
+  newPassword: String!
+  validatePassword: String!
 }
 
 input AuthDto {
@@ -146,6 +170,9 @@ type Mutation {
   validateUser(validateUser: ValidateUserDto!): User!
   changePassword(changePassword: ChangePasswordDto!): User!
   addFriendUser(addFriend: FriendDto!): Commit!
+  addBookMarkUser(addBookMark: BookMarkDto!): BookmarkType!
+  forgetPasswordRequest(userId: String!): NullResponse!
+  removeBookMarkUser(removeBookMark: BookMarkDto!): NullResponse!
   removeFriendUser(removeFriend: FriendDto!): Commit!
   addNotificationUser(addNotification: NotificationDto!): User!
   createRoomChat(createRoom: CreateRoomDto!): Roomchat!
@@ -160,7 +187,7 @@ type Mutation {
   SignUp(userDto: SignUpDto!): AuthResponse!
   createPost(createPost: CreatePostDto!): Post!
   sharePost(sharePost: SharePostDto!): Post!
-  validatePost(validatePost: ValidatePostDto!): Message!
+  validatePost(validatePost: ValidatePostDto!): Post!
   removePost(removePost: ValidatePostDto!): NullResponse!
   addComment(addComment: CommentPostDto!): Message!
   validateComment(validateComment: CommentPostDto!): Message!
@@ -169,6 +196,7 @@ type Mutation {
   RemoveInteractionPost(removeInteractionPost: InteractPostDto!): NullResponse!
   InteractComment(addInteractComment: InteractPostDto!): Message!
   RemoveInteractionComment(removeInteractionComment: InteractPostDto!): NullResponse!
+  generateMomoPayment(payment: PaymentDto!): Payment!
 }
 
 input ValidateUserDto {
@@ -176,7 +204,7 @@ input ValidateUserDto {
   name: String!
   nickName: String!
   description: String!
-  avatarUrl: String!
+  avatarUrl: String
   birthday: DateTime
   age: Int
   phoneNumber: Int
@@ -187,6 +215,11 @@ input ChangePasswordDto {
   currentPassword: String!
   newPassword: String!
   validatePassword: String!
+}
+
+input BookMarkDto {
+  userId: String!
+  bookMarkId: String!
 }
 
 input NotificationDto {
@@ -245,6 +278,7 @@ input SignUpDto {
 
 input CreatePostDto {
   userId: String!
+  type: String!
   content: String
   fileUrl: [String!]!
 }
@@ -277,4 +311,10 @@ input InteractPostDto {
   commentId: String
   interactionId: String
   content: String
+}
+
+input PaymentDto {
+  userId: String!
+  method: String!
+  select: String!
 }

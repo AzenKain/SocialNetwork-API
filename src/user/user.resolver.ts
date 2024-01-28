@@ -4,18 +4,28 @@ import { UserService } from './user.service';
 
 import { HttpCode, UseGuards } from "@nestjs/common";
 import { JwtGuardGql } from "src/auth/guard";
-import { ChangePasswordDto, FriendDto, NotificationDto, ValidateUserDto } from './dto';
+import { ChangePasswordDto, 
+    FriendDto, 
+    NotificationDto, 
+    ValidateUserDto, 
+    BookMarkDto, 
+    ForgetPasswordDto,
+    ValidateOtpDto 
+} from './dto';
 import { RoomchatGateway } from "src/roomchat/roomchat.gateway";
 import { CommitType } from "../commit/commit.type";
+import { NullType } from "src/post/type/null.type";
+import { BookmarkType } from './type/bookmark.type';
+import { IsOtpType } from "./type/isOtp.type";
 
-@UseGuards(JwtGuardGql)
+
 @Resolver(() => UserType)
 export class UserResolver {
     constructor(
         private userService: UserService,
         private romchatGatway: RoomchatGateway
     ) {}
-
+    @UseGuards(JwtGuardGql)
     @HttpCode(200)
     @Query(()=>UserType)
     async getUser(
@@ -23,7 +33,7 @@ export class UserResolver {
     ) {
         return await this.userService.getUser(userId);
     }
-
+    @UseGuards(JwtGuardGql)
     @HttpCode(201)
     @Query(()=>[UserType])
     async findUser(
@@ -31,7 +41,7 @@ export class UserResolver {
     ) {
         return await this.userService.findUser(content);
     }
-
+    @UseGuards(JwtGuardGql)
     @HttpCode(201)
     @Mutation(()=>UserType)
     async validateUser(
@@ -41,6 +51,7 @@ export class UserResolver {
         return data
     }
 
+    @UseGuards(JwtGuardGql)
     @HttpCode(201)
     @Mutation(()=>UserType)
     async changePassword(
@@ -50,6 +61,7 @@ export class UserResolver {
         return data;
     }
 
+    @UseGuards(JwtGuardGql)
     @HttpCode(201)
     @Mutation(()=>CommitType)
     async addFriendUser(
@@ -59,7 +71,8 @@ export class UserResolver {
         this.romchatGatway.notification(addFriend.friendId,"newFriend", data);
         return data;
     }
-
+    
+    @UseGuards(JwtGuardGql)
     @HttpCode(201)
     @Query(()=>CommitType)
     async acceptFriendUser(
@@ -70,6 +83,50 @@ export class UserResolver {
         return data;
     }
 
+    @UseGuards(JwtGuardGql)
+    @HttpCode(201)
+    @Mutation(()=>BookmarkType)
+    async addBookMarkUser(
+        @Args('addBookMark') addBookMark: BookMarkDto
+    ) {
+        return await this.userService.addBookMark(addBookMark);
+    }
+    
+    @HttpCode(201)
+    @Mutation(()=>IsOtpType)
+    async createOtpCode(
+        @Args('createOtp') createOtp: ValidateOtpDto
+    ) {
+        return await this.userService.createOtpCode(createOtp);
+    }
+
+    @HttpCode(201)
+    @Mutation(()=>IsOtpType)
+    async validateOtpCode(
+        @Args('validateOtp') validateOtp: ValidateOtpDto
+    ) {
+        return await this.userService.validateOptCode(validateOtp)
+    }
+
+    @HttpCode(201)
+    @Query(()=>UserType)
+    async forgetPasswordValidate(
+        @Args("forgetPassword") forgetPassword : ForgetPasswordDto
+    ) {
+        return await this.userService.forgetPasswordValidate(forgetPassword);
+    }
+
+    @UseGuards(JwtGuardGql)
+    @HttpCode(201)
+    @Mutation(()=>NullType)
+    async removeBookMarkUser(
+        @Args('removeBookMark') removeBookMark: BookMarkDto
+    ) {
+        await this.userService.removeBookMark(removeBookMark);
+        return {data : null}
+    }
+
+    @UseGuards(JwtGuardGql)
     @HttpCode(201)
     @Mutation(()=> CommitType)
     async removeFriendUser(
@@ -80,6 +137,7 @@ export class UserResolver {
         return data;
     }
 
+    @UseGuards(JwtGuardGql)
     @HttpCode(201)
     @Query(()=>[CommitType])
     async getFriendRequest(
@@ -88,6 +146,16 @@ export class UserResolver {
         return await this.userService.getFriendRequest(userId);
     }
 
+    @UseGuards(JwtGuardGql)
+    @HttpCode(201)
+    @Query(()=>[CommitType])
+    async getFriendReceive(
+        @Args('id') userId: string
+    ) {
+        return await this.userService.getFriendReceive(userId);
+    }
+
+    @UseGuards(JwtGuardGql)
     @HttpCode(201)
     @Mutation(()=>UserType)
     addNotificationUser(

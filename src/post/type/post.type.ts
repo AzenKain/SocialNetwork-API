@@ -9,7 +9,10 @@ export class PostType {
 
     @Field()
     ownerUserId: string;
-    
+
+    @Field()
+    type: string;
+
     @Field({nullable: true})
     linkedShare: string | null;
 

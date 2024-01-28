@@ -16,7 +16,10 @@ export class MediaService {
 
     async uploadFile(file : Express.Multer.File, userId : string) {
         const dateTime = Date.now();
-        const uniqueFileName = `${dateTime}_${file.originalname}`;
+        let uniqueFileName = `${dateTime}_`;
+        if ("originalname" in file) {
+            uniqueFileName = `${dateTime}_${file.originalname}`;
+        }
         const storageRef = ref(this.fireBase.storage, uniqueFileName)
         const metadata = {
             contentType: file.mimetype,
@@ -53,10 +56,26 @@ export class MediaService {
 
     }
 
-    async getFile(id : string) {
+    async getFileByID(id : string) {
         const fileInfo = await this.fileRespository.findOne({
             where: {
                 id: id,
+            }
+        })
+
+        if (!fileInfo) {
+            throw new ForbiddenException(
+                'This file does not exist',
+            );
+        }
+        return fileInfo;
+
+    }
+
+    async getFileByUrl(url : string) {
+        const fileInfo = await this.fileRespository.findOne({
+            where: {
+                url: url,
             }
         })
 

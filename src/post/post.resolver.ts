@@ -21,11 +21,27 @@ export class PostResolver {
     @HttpCode(200)
     @Query(() => [PostType])
     getAllPostByUserId(
-        @Args('id') userId: string
+        @Args('userId') userId: string
     ) {
         return this.postService.getAllPostByUserId(userId);
     }
 
+    @HttpCode(200)
+    @Query(() => [PostType])
+    getDailyPostByUserId(
+        @Args('userId') userId: string
+    ) {
+        return this.postService.getPostDaily(userId);
+    }
+
+    @HttpCode(200)
+    @Query(() => [PostType])
+    searchPost(
+        @Args('content') content: string
+    ) {
+        return this.postService.searchPostByContent(content);
+    }
+    
     @HttpCode(200)
     @Query(() => PostType)
     getPostById(
@@ -55,8 +71,9 @@ export class PostResolver {
         await this.postGateway.notification(linkedPost.ownerUserId, "sharePost", newPost)
         return newPost;
     }
+    
     @HttpCode(201)
-    @Mutation(() => MessageType)
+    @Mutation(() => PostType)
     async validatePost(
         @Args('validatePost') validatePost: ValidatePostDto
     ) {
@@ -81,7 +98,8 @@ export class PostResolver {
         @Args('addComment') commentPost: CommentPostDto
     ) {
         const newComment  = await this.postService.commentPostById(commentPost)
-        await this.postGateway.notification(commentPost.postId, "addComment", commentPost)
+        await this.postGateway.addMemberRoomchat(commentPost.postId, commentPost.userId)
+        await this.postGateway.notification(commentPost.postId, "addComment", newComment)
         return newComment;
     }
 
@@ -91,7 +109,7 @@ export class PostResolver {
         @Args('validateComment') commentPost: CommentPostDto
     ) {
         const newComment  = await this.postService.validateCommentById(commentPost)
-        await this.postGateway.notification(commentPost.postId, "validateComment", commentPost)
+        await this.postGateway.notification(commentPost.postId, "validateComment", newComment)
         return newComment;
     }
 
@@ -102,6 +120,7 @@ export class PostResolver {
     ) {
         await this.postService.removeCommentById(removeComment)
         await this.postGateway.notification(removeComment.postId, "removeComment", removeComment)
+        return {data : null}
     }
 
     @HttpCode(201)
@@ -110,7 +129,10 @@ export class PostResolver {
         @Args('addInteractPost') interactPost: InteractPostDto
     ) {
         const newInteraction  = await this.postService.interactPostById(interactPost)
-        await this.postGateway.notification(interactPost.postId, "addInteractionPost!", interactPost)
+        const dataRe : any = {...newInteraction};
+        dataRe.postId = interactPost.postId;
+        await this.postGateway.addMemberRoomchat(interactPost.postId, interactPost.userId)
+        await this.postGateway.notification(interactPost.postId, "addInteractionPost!", dataRe)
         return newInteraction;
     }
 
@@ -121,6 +143,7 @@ export class PostResolver {
     ) {
         await this.postService.removeInteractById(interactPost)
         await this.postGateway.notification(interactPost.postId, "removeInteractionPost", interactPost)
+        return {data : null}
     }
 
     @HttpCode(201)
@@ -129,7 +152,7 @@ export class PostResolver {
         @Args('addInteractComment') interactComment: InteractPostDto
     ) {
         const newComment  = await this.postService.addInteractMessage(interactComment)
-        await this.postGateway.notification(interactComment.postId, "addInteractionComment", interactComment)
+        await this.postGateway.notification(interactComment.postId, "addInteractionComment", newComment)
         return newComment;
     }
 

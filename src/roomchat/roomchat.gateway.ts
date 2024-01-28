@@ -79,11 +79,11 @@ export class RoomchatGateway implements OnGatewayInit, OnGatewayConnection, OnGa
         socket.disconnect();
         return;
       }
-      const userId = data.id;
-      if (!userId) {
+      if (!data.id) {
         socket.disconnect();
         return;
       }
+      const userId = data.id;
       this.connectedClients.set(userId, socket);
       socket.join(userId);
       const user = await this.userRespository.findOne({
@@ -91,6 +91,7 @@ export class RoomchatGateway implements OnGatewayInit, OnGatewayConnection, OnGa
           id: userId
         }
       })
+      if (!user) return;
       user.isOnline = true;
       this.userRespository.save(user);
       if (userId) {
@@ -107,14 +108,16 @@ export class RoomchatGateway implements OnGatewayInit, OnGatewayConnection, OnGa
 
   async handleDisconnect(socket: Socket) {
     const data = await this.roomchatService.decodeHeader(socket);
+    if (!data) return;
+    if (!("id" in data)) return;
     const userId = data.id;
-    if (!userId) socket.disconnect();
     this.connectedClients.delete(userId)
     const user = await this.userRespository.findOne({
       where: {
         id: userId
       }
     })
+    if (!user) return;
     user.isOnline = false;
     this.userRespository.save(user);
   }

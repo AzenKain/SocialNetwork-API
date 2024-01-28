@@ -40,6 +40,9 @@ export class UserType {
     refreshToken: string;
 
     @Field()
+    role: string;
+    
+    @Field()
     isOnline: boolean;
 
     @Field(()=> ProfileType)
@@ -47,7 +50,10 @@ export class UserType {
 
     @Field(() => [String],{ nullable: true })
     friends: string[];
-    
+
+    @Field(() => [String],{ nullable: true })
+    bookMarks: string[];
+
     @Field(()=> [NotificationType],{ nullable: true })
     notification: NotificationType[];
 

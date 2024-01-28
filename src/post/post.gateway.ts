@@ -1,4 +1,4 @@
-import { OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, SubscribeMessage, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
+import { OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit, WebSocketGateway, WebSocketServer } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { PostService } from './post.service';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -21,7 +21,39 @@ export class PostGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
   afterInit(socket: Socket) {
 
   }
+  async addMemberRoomchat(roomId: string, userId: string) {
+    try {
+      this.connectedClients[userId].join(roomId);
+    }
+    catch (err) {
+      return;
+    }
+  }
+  
+  async addMembersRoomchat(roomId: string, userId: string[]) {
+    for (const memberId in userId) {
+      try {
+        this.connectedClients[memberId].join(roomId);
+      }
+      catch (err) {
+        continue;
+      }
+    }
+    return;
+  }
 
+  async leaveMembersRoomchat(roomId: string, userId: string[]) {
+    for (const memberId in userId) {
+      try {
+        this.connectedClients[memberId].leave(roomId);
+      }
+      catch (err) {
+        continue;
+      }
+    }
+    return;
+  }
+  
   async notification(roomId: string, title: string,data: any) {
     this.server.to(roomId).emit(title, data)
   }
@@ -45,6 +77,7 @@ export class PostGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
           id: userId
         }
       })
+      if (!user) return;
       user.isOnline = true;
       this.userRespository.save(user);
       if (userId) {
@@ -66,6 +99,8 @@ export class PostGateway implements OnGatewayInit, OnGatewayConnection, OnGatewa
 
   async handleDisconnect(socket: Socket) {
     const data = await this.postService.decodeHeader(socket);
+    if (!data) return;
+    if (!("id" in data)) return;
     const userId = data.id;
     if (!userId) socket.disconnect();
     this.connectedClients.delete(userId);

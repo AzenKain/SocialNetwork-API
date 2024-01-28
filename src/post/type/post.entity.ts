@@ -15,6 +15,9 @@ export class PostEntity {
     ownerUserId: string;
 
     @Column()
+    type: string;
+
+    @Column()
     linkedShare: string | null;
 
     @Column()
