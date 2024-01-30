@@ -1,6 +1,6 @@
 import { MessageType } from "src/message/message.type";
 import { Column, CreateDateColumn, Entity, ObjectIdColumn, PrimaryColumn, UpdateDateColumn } from "typeorm";
-import { MemberOutType } from "./romchat.type";
+import { MemberOutType, MemberRoleType } from "./romchat.type";
 
 
 @Entity()
@@ -21,7 +21,7 @@ export class Roomchat {
     isDisplay: boolean;
 
     @Column()
-    isBlock: boolean;
+    isBlock: string | null;
 
     @Column()
     ownerUserId: string;
@@ -34,15 +34,18 @@ export class Roomchat {
     
     @Column()
     member: string[];
-    
+
+    @Column("simple-json")
+    memberNickname: Record<string, string> | null;
+
+    @Column("simple-json")
+    role: Record<string, MemberRoleType[]> | null;
+
     @Column("simple-json")
     memberOut : MemberOutType[];
 
     @Column("simple-json")
     data: MessageType[];
-
-    @Column("simple-json")
-    memberNickname: Record<string, string>;
     
     @CreateDateColumn()
     created_at: Date;

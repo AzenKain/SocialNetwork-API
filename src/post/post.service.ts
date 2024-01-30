@@ -146,8 +146,10 @@ export class PostService {
     }
 
     async interactPostById(interaction: InteractPostDto) {
-       
         const newPost = await this.getPostById(interaction.postId);
+        if (newPost.interaction.findIndex(inter => inter.userId === interaction.userId) !== -1) {
+            throw new ForbiddenException(`Duplicate interaction`);
+        }
         const newInteraction = new InteractionType();
         let generatedOTP: string = otpGenerator.generate(10, {digits: false, upperCaseAlphabets: false, specialChars: false });
         let interactionId: string = uuidv5(interaction.userId + generatedOTP, uuidv5.URL);
@@ -173,6 +175,11 @@ export class PostService {
 
     async removePostById(payload: ValidatePostDto) {
         const validatePost = await this.getPostById(payload.postId);
+        if (validatePost.ownerUserId !== payload.userId) {
+            throw new ForbiddenException(
+                'The user has no permission',
+            );
+        }
         validatePost.isDisplay = false;
         return await this.postRespository.save(validatePost);
     }
@@ -212,6 +219,11 @@ export class PostService {
         if (countComment == -1) {
             throw new ForbiddenException(`Comment with id ${payload.commentId} not found.`);
         }
+        if (validatePost.comment[countComment].userId !== payload.userId) {
+            throw new ForbiddenException(
+                'The user has no permission',
+            );
+        }
         validatePost.comment[countComment].content = payload.content
         validatePost.comment[countComment].fileUrl = payload.fileUrl
         return await this.postRespository.save(validatePost);
@@ -223,6 +235,11 @@ export class PostService {
         if (countComment == -1) {
             throw new ForbiddenException(`Comment with id ${payload.commentId} not found.`);
         }
+        if (validatePost.comment[countComment].userId !== payload.userId) {
+            throw new ForbiddenException(
+                'The user has no permission',
+            );
+        }
         validatePost.comment[countComment].isDisplay = false;
         return await this.postRespository.save(validatePost);
     }
@@ -233,6 +250,11 @@ export class PostService {
         const countIndex = validatePost.interaction.findIndex(item => item.id === payload.interactionId);
         if (countIndex == -1) {
             throw new ForbiddenException(`Comment with id ${payload.interactionId} not found.`);
+        }
+        if (validatePost.interaction[countIndex].userId !== payload.userId) {
+            throw new ForbiddenException(
+                'The user has no permission',
+            );
         }
         validatePost.interaction[countIndex].isDisplay = false;
         return await this.postRespository.save(validatePost);
@@ -263,6 +285,9 @@ export class PostService {
         const countComment = newPost.comment.findIndex(comment => comment.id === payload.commentId);
         if (countComment == -1) {
             throw new ForbiddenException(`Comment with id ${payload.commentId} not found.`);
+        }
+        if (newPost.comment[countComment].interaction.findIndex(inter => inter.userId === payload.userId) !== -1) {
+            throw new ForbiddenException(`Duplicate interaction`);
         }
         const newInteraction = new InteractionType();
         let generatedOTP: string = otpGenerator.generate(10, {digits: false, upperCaseAlphabets: false, specialChars: false });
@@ -295,6 +320,11 @@ export class PostService {
             const interactionIndex = validatePost.comment[commentIndex].interaction.findIndex(interaction => interaction.id === payload.interactionId);
     
             if (interactionIndex !== -1) {
+                if (validatePost.comment[commentIndex].interaction[interactionIndex].userId !== payload.userId) {
+                    throw new ForbiddenException(
+                        'The user has no permission',
+                    );
+                }
                 validatePost.comment[commentIndex].interaction[interactionIndex].isDisplay = false;
                 await this.postRespository.save(validatePost);
             } else {

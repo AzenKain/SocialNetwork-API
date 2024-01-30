@@ -6,9 +6,9 @@ import { Socket } from 'socket.io';
 import { Roomchat } from './type/romchat.entity';
 import { Repository } from 'typeorm';
 import { v5 as uuidv5 } from 'uuid';
-import { MemberRoomDto, CreateRoomDto, InteractMessageDto, ValidateMessageDto, ValidateRoomDto } from './dto';
+import { MemberRoomDto, CreateRoomDto, InteractMessageDto, ValidateMessageDto, ValidateRoomDto, ValidateMemberDto } from './dto';
 import { MessageType } from 'src/message/message.type';
-import { MemberOutType } from './type/romchat.type';
+import { MemberOutType, MemberRoleType } from './type/romchat.type';
 import { InteractionType } from 'src/interaction/interaction.type';
 import { User } from 'src/user/type/user.entity';;
 import * as otpGenerator from 'otp-generator';
@@ -60,6 +60,16 @@ export class RoomchatService {
                 'This roomchat does not exist',
             );
         }
+        if (roomchat.isSingle && roomchat.isBlock != null) {
+            throw new ForbiddenException(
+                'The user has no permission',
+            );
+        }
+        if (!(roomchat.member.includes(payload.userId))) {
+            throw new ForbiddenException(
+                'The user has no permission',
+            );
+        }
         let generatedOTP: string = otpGenerator.generate(10, {digits: false, upperCaseAlphabets: false, specialChars: false });
         let megsId: string = uuidv5(payload.userId + payload.roomchatId + roomchat.data.length + generatedOTP, uuidv5.URL);
 
@@ -103,10 +113,30 @@ export class RoomchatService {
                 'This roomchat does not exist',
             );
         }
+
         const indexMeg = roomchat.data.findIndex(comment => comment.id === payload.messageId);
         if (indexMeg == -1) {
             throw new ForbiddenException(
                 'This messages does not exist',
+            );
+        }
+        if (roomchat.isSingle) {
+            if (roomchat.role.ADMIN.findIndex(user => user.memberId === payload.userId) === -1 
+            && roomchat.role.MOD.findIndex(user => user.memberId === payload.userId) === -1 
+            ) {
+                throw new ForbiddenException(
+                    'The user has no permission',
+                );
+            }
+            else if (roomchat.data[indexMeg].userId !== payload.userId) {
+                throw new ForbiddenException(
+                    'The user has no permission',
+                );
+            }
+        } 
+        else if (roomchat.data[indexMeg].userId !== payload.userId) {
+            throw new ForbiddenException(
+                'The user has no permission',
             );
         }
         roomchat.data[indexMeg].isDisplay = false;
@@ -167,7 +197,29 @@ export class RoomchatService {
                 break;
             }
         }
-     
+
+        const adminRole : MemberRoleType[] = [];
+        if (payload.isSingle) {
+            const adminTmp1 : MemberRoleType = new MemberRoleType();
+            const adminTmp2 : MemberRoleType = new MemberRoleType();
+            adminTmp1.memberId = payload.userId;
+            adminTmp1.created_at = new Date();
+            adminTmp1.updated_at = new Date();
+            adminRole.push(adminTmp1);
+            if (payload.member.length == 0) return;
+            adminTmp2.memberId = payload.member[0];
+            adminTmp2.created_at = new Date();
+            adminTmp2.updated_at = new Date();
+            adminRole.push(adminTmp2);
+        }
+        else {
+            const adminTmp1 : MemberRoleType = new MemberRoleType();
+            adminTmp1.memberId = payload.userId;
+            adminTmp1.created_at = new Date();
+            adminTmp1.updated_at = new Date();
+            adminRole.push(adminTmp1);
+        }
+
         const roomchat = this.roomchatRespository.create({
             id: roomId,
             isDisplay: true,
@@ -178,7 +230,10 @@ export class RoomchatService {
             data: [],
             memberOut: [],
             imgDisplay: payload.imgDisplay,
-            description: payload.description
+            description: payload.description,
+            isBlock: null,
+            memberNickname: {},
+            role: {ADMIN : adminRole, MOD: []}
         })
 
         return await this.roomchatRespository.save(roomchat);
@@ -186,7 +241,9 @@ export class RoomchatService {
 
     async validateRoomchat(payload: ValidateRoomDto) {
         const roomchat = await this.getRoomchatById(payload.roomchatId)
-        if (roomchat.ownerUserId != payload.userId) {
+        if (roomchat.role.ADMIN.findIndex(user => user.memberId === payload.userId) === -1 
+            && roomchat.role.MOD.findIndex(user => user.memberId === payload.userId) === -1 
+        ) {
             throw new ForbiddenException(
                 'The user has no permission',
             );
@@ -206,13 +263,64 @@ export class RoomchatService {
                 'The user has no permission',
             );
         }
-        if (roomchat.ownerUserId != payload.userId) {
+        if (roomchat.role.ADMIN.findIndex(user => user.memberId === payload.userId) === -1 
+        ) {
             throw new ForbiddenException(
                 'The user has no permission',
             );
         }
- 
         roomchat.isDisplay = false
+        return await this.roomchatRespository.save(roomchat);
+    }
+
+    async blockRoomchat(payload: ValidateRoomDto) {
+        const roomchat = await this.getRoomchatById(payload.roomchatId)
+        if (roomchat.isSingle == false) {
+            throw new ForbiddenException(
+                'The user has no permission',
+            );
+        }
+        if (roomchat.role.ADMIN.findIndex(user => user.memberId === payload.userId) === -1 
+        ) {
+            throw new ForbiddenException(
+                'The user has no permission',
+            );
+        }
+
+        roomchat.isBlock = payload.userId;
+        return await this.roomchatRespository.save(roomchat);
+    }
+
+    async unblockRoomchat(payload: ValidateRoomDto) {
+        const roomchat = await this.getRoomchatById(payload.roomchatId)
+        if (roomchat.isSingle == false) {
+            throw new ForbiddenException(
+                'The user has no permission',
+            );
+        }
+        if (roomchat.role.ADMIN.findIndex(user => user.memberId === payload.userId) === -1 
+        ) {
+            throw new ForbiddenException(
+                'The user has no permission',
+            );
+        }
+        if (roomchat.isBlock != payload.userId) {
+            throw new ForbiddenException(
+                'The user has no permission',
+            );
+        }
+        roomchat.isBlock = null;
+        return await this.roomchatRespository.save(roomchat);
+    }
+
+    async validateMemberNickname (payload: ValidateMemberDto) {
+        const roomchat = await this.getRoomchatById(payload.roomchatId)
+        if (!(roomchat.member.includes(payload.userId))) {
+            throw new ForbiddenException(
+                'The user has no permission',
+            );
+        }
+        roomchat.memberNickname[payload.userId] = payload.nickName;
         return await this.roomchatRespository.save(roomchat);
     }
 
@@ -222,6 +330,11 @@ export class RoomchatService {
         if (indexMeg == -1) {
             throw new ForbiddenException(
                 'This messages does not exist',
+            );
+        }
+        if (roomchat.data[indexMeg].userId !== payload.userId) {
+            throw new ForbiddenException(
+                'The user has no permission',
             );
         }
         roomchat.data[indexMeg].content = payload.content;
@@ -261,6 +374,46 @@ export class RoomchatService {
         return roomchat;
     }
 
+    async addModRoomchat(payload: MemberRoomDto) {
+        const roomchat = await this.getRoomchatById(payload.roomchatId)
+        if (roomchat.isSingle == true) {
+            throw new ForbiddenException(
+                'The user has no permission',
+            );
+        }
+        if (roomchat.role.ADMIN.findIndex(user => user.memberId === payload.userId) === -1 
+        ) {
+            throw new ForbiddenException(
+                'The user has no permission',
+            );
+        }
+        for (let i = 0; i < payload.member.length; i++) {
+            const tmpUser : MemberRoleType = new MemberRoleType();
+            tmpUser.memberId = payload.member[i];
+            tmpUser.created_at = new Date();
+            tmpUser.updated_at = new Date();
+            roomchat.role.MOD.push(tmpUser);
+        }
+        return await this.roomchatRespository.save(roomchat)
+    }
+    
+    async removeModRoomchat(payload: MemberRoomDto) {
+        const roomchat = await this.getRoomchatById(payload.roomchatId)
+        if (roomchat.isSingle == true) {
+            throw new ForbiddenException(
+                'The user has no permission',
+            );
+        }
+        if (roomchat.role.ADMIN.findIndex(user => user.memberId === payload.userId) === -1 
+        ) {
+            throw new ForbiddenException(
+                'The user has no permission',
+            );
+        }
+        roomchat.role.MOD = roomchat.role.MOD.filter(user => !payload.member.includes(user.memberId));
+        return await this.roomchatRespository.save(roomchat)
+    }
+
     async addUserToRoomchat(addMemberRoom: MemberRoomDto) {
         const roomchat = await this.roomchatRespository.findOne({
             where: {
@@ -273,6 +426,13 @@ export class RoomchatService {
             );
         }
         if (roomchat.isSingle == true) {
+            throw new ForbiddenException(
+                'The user has no permission',
+            );
+        }
+        if (roomchat.role.ADMIN.findIndex(user => user.memberId === addMemberRoom.userId) === -1 
+        && roomchat.role.MOD.findIndex(user => user.memberId === addMemberRoom.userId) === -1 
+        ) {
             throw new ForbiddenException(
                 'The user has no permission',
             );
@@ -298,7 +458,29 @@ export class RoomchatService {
                 'The user has no permission',
             );
         }
+        if (removeMemberRoom.member.length > 1 || removeMemberRoom.userId !== removeMemberRoom.member[0]) { 
+            if (roomchat.role.ADMIN.findIndex(user => user.memberId === removeMemberRoom.userId) === -1 
+            && roomchat.role.MOD.findIndex(user => user.memberId === removeMemberRoom.userId) === -1 
+            ) {
+                throw new ForbiddenException(
+                    'The user has no permission',
+                );
+            }
+        }
+        else if (removeMemberRoom.userId !== removeMemberRoom.member[0])  {
+            throw new ForbiddenException(
+                'The user has no permission',
+            );
+        }
         roomchat.member = roomchat.member.filter(item => !removeMemberRoom.member.includes(item))
+        roomchat.role.ADMIN = roomchat.role.ADMIN.filter(item => !removeMemberRoom.member.includes(item.memberId))
+        roomchat.role.MOD = roomchat.role.MOD.filter(item => !removeMemberRoom.member.includes(item.memberId))
+        if (roomchat.role.ADMIN.length == 0) {
+            if (roomchat.role.MOD.length !== 0) {
+                roomchat.role.ADMIN.push(roomchat.role.MOD[0])
+                roomchat.role.MOD = roomchat.role.MOD.filter(item => item.memberId !== roomchat.role.MOD[0].memberId)
+            }
+        }
         for (const item of roomchat.member) {
             const memberOut : MemberOutType = new MemberOutType();
             memberOut.memberId = item;

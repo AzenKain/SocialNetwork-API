@@ -17,8 +17,8 @@ export class RoomchatType {
     @Field()
     isSingle: boolean;
 
-    @Field()
-    isBlock: boolean;
+    @Field({nullable: true})
+    isBlock: boolean | null;
 
     @Field()
     ownerUserId: string;
@@ -31,13 +31,18 @@ export class RoomchatType {
     
     @Field(() => [String])
     member: string[];
-    
+
+    @Field(() => GraphQLJSONObject, {nullable: true})
+    memberNickname: Record<string, string> | null;
+
+    @Field(() => GraphQLJSONObject, {nullable: true})
+    role: Record<string, MemberRoleType[]> | null;
+
     @Field(() => [MemberOutType])
     memberOut : MemberOutType[];
 
     @Field(() => [MessageType])
     data: MessageType[];
-
 
     @Field()
     created_at: Date;
@@ -53,6 +58,19 @@ export class MemberOutType {
 
     @Field()
     messageCount: number;
+
+    @Field()
+    created_at: Date;
+    
+    @Field()
+    updated_at: Date;
+}
+
+
+@ObjectType("MemberRole")
+export class MemberRoleType {
+    @Field()
+    memberId: string;
 
     @Field()
     created_at: Date;
