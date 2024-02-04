@@ -25,6 +25,16 @@ export class UserResolver {
         private userService: UserService,
         private romchatGatway: RoomchatGateway
     ) {}
+
+    @UseGuards(JwtGuardGql)
+    @HttpCode(200)
+    @Query(()=>[UserType])
+    async getAllUser (
+        @Args('userId') userId: string
+    ) {
+        return await this.userService.getAllUser(userId);
+    }
+
     @UseGuards(JwtGuardGql)
     @HttpCode(200)
     @Query(()=>UserType)
@@ -33,6 +43,7 @@ export class UserResolver {
     ) {
         return await this.userService.getUser(userId);
     }
+
     @UseGuards(JwtGuardGql)
     @HttpCode(201)
     @Query(()=>[UserType])
@@ -47,8 +58,17 @@ export class UserResolver {
     async validateUser(
         @Args('validateUser') validateUser: ValidateUserDto
     ) {
-        const data = await this.userService.validateUser(validateUser);
-        return data
+        return await this.userService.validateUser(validateUser);
+    }
+
+    @UseGuards(JwtGuardGql)
+    @HttpCode(201)
+    @Mutation(()=>UserType)
+    async validatePrivacyUser(
+        @Args('validateUser') validateUser: ValidateUserDto
+    ) {
+        return await this.userService.validatePrivacyUser(validateUser);
+
     }
 
     @UseGuards(JwtGuardGql)
@@ -128,13 +148,13 @@ export class UserResolver {
 
     @UseGuards(JwtGuardGql)
     @HttpCode(201)
-    @Mutation(()=> CommitType)
+    @Mutation(()=>NullType)
     async removeFriendUser(
         @Args('removeFriend') removeFriend: FriendDto
     ) {
-        const data = await  this.userService.removeFriend(removeFriend);
-        this.romchatGatway.notification(removeFriend.friendId, "removeFriend", data);
-        return data;
+        await this.userService.removeFriend(removeFriend);
+        this.romchatGatway.notification(removeFriend.friendId, "removeFriend", removeFriend);
+        return {data : null}
     }
 
     @UseGuards(JwtGuardGql)
@@ -158,9 +178,9 @@ export class UserResolver {
     @UseGuards(JwtGuardGql)
     @HttpCode(201)
     @Mutation(()=>UserType)
-    addNotificationUser(
-        @Args('addNotification') notification: NotificationDto
+    async removeNotificationUser(
+        @Args('removeNotification') notification: NotificationDto
     ) {
-        return this.userService.addNotification(notification);
+        return await this.userService.removeNotification(notification);
     }
 }

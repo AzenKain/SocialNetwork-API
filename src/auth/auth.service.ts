@@ -103,12 +103,16 @@ export class AuthService {
                 email: userDto.email
             }
         });
-
         if (!userLogin)
             throw new ForbiddenException(
                 'This user does not exist',
             );
 
+        if (userLogin.role === "BANNED") {
+            throw new ForbiddenException(
+                `This user had banned`,
+            );
+        }
         const pwMatches = await argon.verify(
             userLogin.hash,
             userDto.password,
@@ -129,6 +133,17 @@ export class AuthService {
     }
 
     async Signup(userDto: SignUpDto) {
+        const valueGender = ["male", "female", "other"];
+        if (userDto.gender != null && !valueGender.includes(userDto.gender)) {
+            throw new ForbiddenException(
+                'Gender is not validate',
+            );
+        }
+        if (userDto.countryCode != null && !userDto.countryCode.startsWith("+")) {
+            throw new ForbiddenException(
+                'CountryCode is not validate',
+            );
+        }
         const checkMail = await this.userRespository.findOne({
             where: {
                 email: userDto.email,
@@ -156,13 +171,14 @@ export class AuthService {
         const hash = await argon.hash(userDto.password);
 
         const detailUser = new ProfileType()
-        detailUser.age = null;
         detailUser.name = userDto.name;
         detailUser.phoneNumber = userDto.phoneNumber;
         detailUser.birthday = userDto.birthday;
+        detailUser.gender = userDto.gender;
+        detailUser.countryCode = userDto.countryCode;
         detailUser.avatarUrl = null;
         detailUser.description = null;
-        detailUser.description = null;
+
 
         const UserCre = this.userRespository.create({
             id: uuidv5(userDto.email, uuidv5.URL),

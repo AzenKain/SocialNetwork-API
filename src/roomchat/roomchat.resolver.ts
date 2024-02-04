@@ -3,7 +3,7 @@ import { RoomchatType } from './type/romchat.type';
 import { RoomchatService } from './roomchat.service';
 import { HttpCode, UseGuards } from '@nestjs/common';
 import { JwtGuardGql } from 'src/auth/guard';
-import { MemberRoomDto, CreateRoomDto, ValidateMessageDto, ValidateRoomDto, InteractMessageDto } from './dto';
+import { MemberRoomDto, CreateRoomDto, ValidateMessageDto, ValidateRoomDto, InteractMessageDto, ValidateMemberDto } from './dto';
 import { RoomchatGateway } from './roomchat.gateway';
 import { NullType } from 'src/post/type/null.type';
 import { MessageType } from 'src/message/message.type';
@@ -82,6 +82,56 @@ export class RoomchatResolver {
         await this.roomchatGateway.leaveMembersRoomchat(newRoom.id, newRoom.member);
         await this.roomchatGateway.notification(newRoom.id, "removeMember", removeMemberRoom)
         return {data : null}
+    }
+
+    @HttpCode(204)
+    @Mutation(() => RoomchatType)
+    async validateNicknameMemberRoomchat(
+        @Args('validateNicknameMember') payload: ValidateMemberDto
+    ) {
+        const newRoom = await this.roomchatService.validateMemberNickname(payload)
+        await this.roomchatGateway.notification(newRoom.id, "validateNicknameMember", payload)
+        return newRoom
+    }
+
+    @HttpCode(204)
+    @Mutation(() => RoomchatType)
+    async blockRoomchat(
+        @Args('blockRoomchat') payload: ValidateRoomDto
+    ) {
+        const newRoom = await this.roomchatService.blockRoomchat(payload);
+        await this.roomchatGateway.notification(newRoom.id, "blockRoomchat", payload)
+        return newRoom
+    }
+
+    @HttpCode(204)
+    @Mutation(() => RoomchatType)
+    async unblockRoomchat(
+        @Args('unblockRoomchat') payload: ValidateRoomDto
+    ) {
+        const newRoom = await this.roomchatService.unblockRoomchat(payload);
+        await this.roomchatGateway.notification(newRoom.id, "unblockRoomchat", payload)
+        return newRoom
+    }
+
+    @HttpCode(204)
+    @Mutation(() => RoomchatType)
+    async addModRoomchat(
+        @Args('addMod') payload: MemberRoomDto
+    ) {
+        const newRoom = await this.roomchatService.addModRoomchat(payload)
+        await this.roomchatGateway.notification(newRoom.id, "addMod", payload)
+        return newRoom
+    }
+
+    @HttpCode(204)
+    @Mutation(() => RoomchatType)
+    async removeModRoomchat(
+        @Args('removeMod') payload: MemberRoomDto
+    ) {
+        const newRoom = await this.roomchatService.removeModRoomchat(payload)
+        await this.roomchatGateway.notification(newRoom.id, "removeMod", payload)
+        return newRoom
     }
 
     @HttpCode(204)

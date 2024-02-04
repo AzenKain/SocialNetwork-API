@@ -13,13 +13,16 @@ export class ProfileType {
     birthday?: Date | null;
 
     @Field({ nullable: true })
-    age?: number | null;
-
-    @Field({ nullable: true })
     description?: string | null;
 
     @Field({ nullable: true })
-    phoneNumber?: number | null;
+    phoneNumber?: string | null;
+
+    @Field({ nullable: true })
+    gender?: string | null;
+
+    @Field({ nullable: true })
+    countryCode?: string | null;
 
     @Field({ nullable: true })
     avatarUrl?: string | null;

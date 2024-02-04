@@ -155,7 +155,11 @@ export class RoomchatService {
                 `This userId (${payload.userId}) does not exist`,
             );
         }
-        
+        if (validateUser.role === "BANNED") {
+            throw new ForbiddenException(
+                `This user had banned`,
+            );
+        }
         delete validateUser.hash;
         delete validateUser.refreshToken;
         const sortedMembers = [payload.userId, ...payload.member].sort()
@@ -375,7 +379,17 @@ export class RoomchatService {
     }
 
     async addModRoomchat(payload: MemberRoomDto) {
-        const roomchat = await this.getRoomchatById(payload.roomchatId)
+        const roomchat = await this.roomchatRespository.findOne({
+            where: {
+                id: payload.roomchatId,
+                isDisplay: true,
+            }
+        });
+        if (!roomchat) {
+            throw new ForbiddenException(
+                'This roomchat does not exist',
+            );
+        }
         if (roomchat.isSingle == true) {
             throw new ForbiddenException(
                 'The user has no permission',
@@ -388,17 +402,29 @@ export class RoomchatService {
             );
         }
         for (let i = 0; i < payload.member.length; i++) {
+            if (roomchat.role.MOD.findIndex(item => item.memberId === payload.member[i]) !== -1) continue;
             const tmpUser : MemberRoleType = new MemberRoleType();
             tmpUser.memberId = payload.member[i];
             tmpUser.created_at = new Date();
             tmpUser.updated_at = new Date();
             roomchat.role.MOD.push(tmpUser);
         }
-        return await this.roomchatRespository.save(roomchat)
+        const dataReturn = await this.roomchatRespository.save(roomchat)
+        return dataReturn
     }
     
     async removeModRoomchat(payload: MemberRoomDto) {
-        const roomchat = await this.getRoomchatById(payload.roomchatId)
+        const roomchat = await this.roomchatRespository.findOne({
+            where: {
+                id: payload.roomchatId,
+                isDisplay: true,
+            }
+        });
+        if (!roomchat) {
+            throw new ForbiddenException(
+                'This roomchat does not exist',
+            );
+        }
         if (roomchat.isSingle == true) {
             throw new ForbiddenException(
                 'The user has no permission',
@@ -411,13 +437,15 @@ export class RoomchatService {
             );
         }
         roomchat.role.MOD = roomchat.role.MOD.filter(user => !payload.member.includes(user.memberId));
-        return await this.roomchatRespository.save(roomchat)
+        const dataReturn =  await this.roomchatRespository.save(roomchat)
+        return dataReturn
     }
 
     async addUserToRoomchat(addMemberRoom: MemberRoomDto) {
         const roomchat = await this.roomchatRespository.findOne({
             where: {
-                id: addMemberRoom.roomchatId
+                id: addMemberRoom.roomchatId,
+                isDisplay: true
             }
         });
         if (!roomchat) {
@@ -437,7 +465,10 @@ export class RoomchatService {
                 'The user has no permission',
             );
         }
-        roomchat.member.push(...addMemberRoom.member)
+        for (let i = 0; i < addMemberRoom.member.length; i++) {
+            if (roomchat.member.includes(roomchat.member[i])) continue;
+            roomchat.member.push(roomchat.member[i]);
+        }
         roomchat.memberOut = roomchat.memberOut.filter(item => !addMemberRoom.member.includes(item.memberId))
         return await this.roomchatRespository.save(roomchat)
     }
@@ -445,7 +476,8 @@ export class RoomchatService {
     async removeUserFromRoomchat(removeMemberRoom: MemberRoomDto) {
         const roomchat = await this.roomchatRespository.findOne({
             where: {
-                id: removeMemberRoom.roomchatId
+                id: removeMemberRoom.roomchatId,
+                isDisplay: true
             }
         });
         if (!roomchat) {
@@ -485,6 +517,8 @@ export class RoomchatService {
             const memberOut : MemberOutType = new MemberOutType();
             memberOut.memberId = item;
             memberOut.messageCount = roomchat.data.length;
+            memberOut.created_at = new Date();
+            memberOut.updated_at = new Date();
             roomchat.memberOut.push(memberOut);
         }
         return await this.roomchatRespository.save(roomchat)

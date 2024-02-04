@@ -11,18 +11,49 @@ import { MessageType } from 'src/message/message.type';
 import { InteractionType } from 'src/interaction/interaction.type';
 import { User } from 'src/user/type/user.entity';
 import * as otpGenerator from 'otp-generator';
+import { DataNotificationType, NotificationType } from 'src/user/type/notification.type';
+
 
 @Injectable()
 export class PostService {
     constructor(
         private readonly jwtService: JwtService,
         private config: ConfigService,
-        @InjectRepository(PostEntity) private postRespository: Repository<PostEntity>,
-        @InjectRepository(User) private userRespository: Repository<User>,
+        @InjectRepository(PostEntity) private postRepository: Repository<PostEntity>,
+        @InjectRepository(User) private userRepository: Repository<User>,
     ) { }
 
+    async getUser(userId: string): Promise<User> {
+        const user = await this.userRepository.findOne({
+            where: {
+                id: userId
+            }
+        });
+
+        if (!user)
+            throw new ForbiddenException(
+                `This userId (${userId}) does not exist`,
+            );
+        if (user.role === "BANNED") {
+            throw new ForbiddenException(
+                `This userId had banned`,
+            );
+        }
+        delete user.hash;
+        delete user.refreshToken;
+        return user;
+    }
+    async getAllPosts(userId: string) {
+        const user = await this.getUser(userId);
+        if (user.role !== "ADMIN") {
+            throw new ForbiddenException(
+                'Request is denied',
+            );
+        }
+        return await this.postRepository.find({});
+    }
     async getPostById(postId: string) {
-        const postSelect =  await this.postRespository.findOne({
+        const postSelect =  await this.postRepository.findOne({
             where: {
                 id: postId
             }
@@ -36,7 +67,7 @@ export class PostService {
     }
 
     async searchPostByContent(content: string) {
-        const postSelect =  await this.postRespository.find({});
+        const postSelect =  await this.postRepository.find({});
         const dataRe = [];
         for (const userIndex in postSelect) {
             if (!('content' in postSelect[userIndex])) continue;
@@ -48,7 +79,7 @@ export class PostService {
     }
 
     async getPostDaily(userId: string) {
-        const userData = await this.userRespository.findOne({
+        const userData = await this.userRepository.findOne({
             where: {
                 id: userId
             }
@@ -58,7 +89,12 @@ export class PostService {
                 `This userId (${userId}) does not exist`,
             );
         }
-        const postRe = await this.postRespository.find({
+        if (userData.role === "BANNED") {
+            throw new ForbiddenException(
+                `This user had banned`,
+            );
+        }
+        const postRe = await this.postRepository.find({
             where: {
                 ownerUserId: userId,
                 isDisplay: true
@@ -66,7 +102,7 @@ export class PostService {
         });
         let dataRe = [...postRe]
         for (let i : number = 0; i < userData.friends.length; i++) {
-            const dataPostFriend = await this.postRespository.find({
+            const dataPostFriend = await this.postRepository.find({
                 where: {
                     ownerUserId: userData.friends[i],
                     isDisplay: true
@@ -74,15 +110,46 @@ export class PostService {
             })
             dataRe = dataRe.concat(dataPostFriend)
         }
+        const dataAdmin = await this.userRepository.findOne({
+            where: {
+                email: this.config.get('MAIL_USER')
+            }
+        })
+        delete dataAdmin.hash
+        delete dataAdmin.refreshToken
+        if (dataAdmin) {
+            const dataPostAdmin = await this.postRepository.find({
+                where: {
+                    ownerUserId: dataAdmin.id,
+                    isDisplay: true
+                }
+            })
+            dataRe = dataRe.concat(dataPostAdmin)
+        }
         return dataRe;
     }
 
     async createPost(post: CreatePostDto) {
+        const dataUser = await this.userRepository.findOne({
+            where: {
+                id: post.userId
+            }
+        })
+        if (!dataUser) {
+            throw new ForbiddenException(
+                `This userId (${post.userId}) does not exist`,
+            );
+        }
+        if (dataUser.role === "BANNED") {
+            throw new ForbiddenException(
+                `This user had banned`,
+            );
+        }
         let generatedOTP: string = otpGenerator.generate(10, {digits: false, upperCaseAlphabets: false, specialChars: false });
         let postId: string = uuidv5(post.userId + generatedOTP, uuidv5.URL);
 
         while (true) {
-            const postSelect =  await this.postRespository.findOne({
+            const postSelect =  await this.postRepository.findOne({
                 where: {
                     id: postId
                 }
@@ -96,7 +163,7 @@ export class PostService {
             }
         }
      
-        const postNew = this.postRespository.create({
+        const postNew = this.postRepository.create({
             id: postId,
             ownerUserId: post.userId,
             fileUrl: post.fileUrl,
@@ -106,14 +173,37 @@ export class PostService {
             comment: [],
             isDisplay: true
         })
-        return await this.postRespository.save(postNew);
+        if (post.type === "POST") {
+            for (let i = 0; i < dataUser.friends.length; i++) {
+                const tmpDataFriend = await this.userRepository.findOne({
+                    where: {
+                        id: dataUser.friends[i]
+                    }
+                })
+                if (!tmpDataFriend) continue;
+                const notiUser = new NotificationType();
+                notiUser.id = uuidv5(postNew.id + dataUser.friends[i] + tmpDataFriend.notification.length + generatedOTP, uuidv5.URL);
+                const notiContent = new DataNotificationType();
+                notiContent.roomId = postNew.id;
+                notiContent.userDtoId = dataUser.id;
+                notiUser.content = notiContent;
+                notiUser.isDisplay = true;
+                notiUser.isRead = false;
+                notiUser.type = "NEWPOST";
+                notiUser.created_at = new Date();
+                notiUser.updated_at = new Date();
+                tmpDataFriend.notification.push(notiUser);
+                await this.userRepository.save(tmpDataFriend);
+            };
+        }
+        return await this.postRepository.save(postNew);
     }
 
     async validatePostById(payload: ValidatePostDto){
         const newPost = await this.getPostById(payload.postId)
         newPost.fileUrl = payload.fileUrl
         newPost.content = payload.content
-        return await this.postRespository.save(newPost);
+        return await this.postRepository.save(newPost);
     }
 
     async sharePostById(share: SharePostDto) {
@@ -122,7 +212,7 @@ export class PostService {
         let postId: string = uuidv5(share.userId + generatedOTP, uuidv5.URL);
 
         while (true) {
-            const postSelect =  await this.postRespository.findOne({
+            const postSelect =  await this.postRepository.findOne({
                 where: {
                     id: postId
                 }
@@ -135,19 +225,34 @@ export class PostService {
                 break;
             }
         }
-        const postNew = this.postRespository.create({
+        const postNew = this.postRepository.create({
             id: postId,
             ownerUserId: share.userId,
             fileUrl: share.fileUrl,
             content: share.content,
             linkedShare: share.postId
         })
-        return await this.postRespository.save(postNew);
+        return await this.postRepository.save(postNew);
     }
 
     async interactPostById(interaction: InteractPostDto) {
+        const dataUser = await this.userRepository.findOne({
+            where: {
+                id: interaction.userId
+            }
+        })
+        if (!dataUser) {
+            throw new ForbiddenException(
+                `This userId (${interaction.userId}) does not exist`,
+            );
+        }
+        if (dataUser.role === "BANNED") {
+            throw new ForbiddenException(
+                `This user had banned`,
+            );
+        }
         const newPost = await this.getPostById(interaction.postId);
-        if (newPost.interaction.findIndex(inter => inter.userId === interaction.userId) !== -1) {
+        if (newPost.interaction.findIndex(inter => inter.userId === interaction.userId && inter.isDisplay == true) !== -1) {
             throw new ForbiddenException(`Duplicate interaction`);
         }
         const newInteraction = new InteractionType();
@@ -169,7 +274,34 @@ export class PostService {
         newInteraction.updated_at = new Date();
         newInteraction.created_at = new Date();
         newPost.interaction.push(newInteraction);
-        await this.postRespository.save(newPost);
+        await this.postRepository.save(newPost);
+        
+        if (newPost.interaction.findIndex(inter => inter.userId === interaction.userId) === -1) {
+            const ownerPost = await this.userRepository.findOne({
+                where: {
+                    id: newPost.ownerUserId,
+                }
+            })
+            if (!ownerPost) {
+                throw new ForbiddenException(
+                    `The owner post does not exist`,
+                );
+            }
+            const notiUser = new NotificationType();
+            notiUser.id = uuidv5(newPost.id + ownerPost.id + ownerPost.notification.length + generatedOTP, uuidv5.URL);
+            const notiContent = new DataNotificationType();
+            notiContent.roomId = newPost.id;
+            notiContent.userDtoId = dataUser.id;
+            notiUser.content = notiContent;
+            notiUser.isDisplay = true;
+            notiUser.isRead = false;
+            notiUser.type = "NEWINTERACTION";
+            notiUser.created_at = new Date();
+            notiUser.updated_at = new Date();
+            ownerPost.notification.push(notiUser);
+            await this.userRepository.save(ownerPost);
+        }
+
         return newInteraction
     }
 
@@ -181,11 +313,25 @@ export class PostService {
             );
         }
         validatePost.isDisplay = false;
-        return await this.postRespository.save(validatePost);
+        return await this.postRepository.save(validatePost);
     }
     
     async commentPostById(comment: CommentPostDto) {
-       
+        const dataUser = await this.userRepository.findOne({
+            where: {
+                id: comment.userId
+            }
+        })
+        if (!dataUser) {
+            throw new ForbiddenException(
+                `This userId (${comment.userId}) does not exist`,
+            );
+        }
+        if (dataUser.role === "BANNED") {
+            throw new ForbiddenException(
+                `This user had banned`,
+            );
+        }
         const newPost = await this.getPostById(comment.postId)
         const newComment: MessageType = new MessageType();
         let generatedOTP: string = otpGenerator.generate(10, {digits: false, upperCaseAlphabets: false, specialChars: false });
@@ -209,7 +355,33 @@ export class PostService {
         newComment.created_at = new Date();
         newComment.updated_at = new Date();
         newPost.comment.push(newComment);
-        await this.postRespository.save(newPost);
+        await this.postRepository.save(newPost);
+
+
+        const ownerPost = await this.userRepository.findOne({
+            where: {
+                id: newPost.ownerUserId,
+            }
+        })
+        if (!ownerPost) {
+            throw new ForbiddenException(
+                `The owner post does not exist`,
+            );
+        }
+        const notiUser = new NotificationType();
+        notiUser.id = uuidv5(newPost.id + ownerPost.id + ownerPost.notification.length + generatedOTP, uuidv5.URL);
+        const notiContent = new DataNotificationType();
+        notiContent.roomId = newPost.id;
+        notiContent.userDtoId = dataUser.id;
+        notiUser.content = notiContent;
+        notiUser.isDisplay = true;
+        notiUser.isRead = false;
+        notiUser.type = "NEWCOMMENT";
+        notiUser.created_at = new Date();
+        notiUser.updated_at = new Date();
+        ownerPost.notification.push(notiUser);
+        await this.userRepository.save(ownerPost);
+
         return newComment;
     }
 
@@ -226,7 +398,7 @@ export class PostService {
         }
         validatePost.comment[countComment].content = payload.content
         validatePost.comment[countComment].fileUrl = payload.fileUrl
-        return await this.postRespository.save(validatePost);
+        return await this.postRepository.save(validatePost);
     }
 
     async removeCommentById(payload: CommentPostDto) {
@@ -241,7 +413,7 @@ export class PostService {
             );
         }
         validatePost.comment[countComment].isDisplay = false;
-        return await this.postRespository.save(validatePost);
+        return await this.postRepository.save(validatePost);
     }
 
     async removeInteractById(payload: InteractPostDto) {
@@ -257,7 +429,7 @@ export class PostService {
             );
         }
         validatePost.interaction[countIndex].isDisplay = false;
-        return await this.postRespository.save(validatePost);
+        return await this.postRepository.save(validatePost);
     }
 
     async getPayloadFromSocket(socket: Socket) {
@@ -286,7 +458,7 @@ export class PostService {
         if (countComment == -1) {
             throw new ForbiddenException(`Comment with id ${payload.commentId} not found.`);
         }
-        if (newPost.comment[countComment].interaction.findIndex(inter => inter.userId === payload.userId) !== -1) {
+        if (newPost.comment[countComment].interaction.findIndex(inter => inter.userId === payload.userId && inter.isDisplay == true) !== -1) {
             throw new ForbiddenException(`Duplicate interaction`);
         }
         const newInteraction = new InteractionType();
@@ -308,7 +480,7 @@ export class PostService {
         newInteraction.updated_at = new Date();
         newInteraction.created_at = new Date();
         newPost.comment[countComment].interaction.push(newInteraction);
-        await this.postRespository.save(newPost);
+        await this.postRepository.save(newPost);
         return newPost.comment[countComment];
     }
     
@@ -326,7 +498,7 @@ export class PostService {
                     );
                 }
                 validatePost.comment[commentIndex].interaction[interactionIndex].isDisplay = false;
-                await this.postRespository.save(validatePost);
+                await this.postRepository.save(validatePost);
             } else {
                 throw new ForbiddenException(`Interaction with id ${payload.interactionId} not found.`);
             }
@@ -345,7 +517,7 @@ export class PostService {
     }
 
     async getAllPostByUserId(userId: string) {
-        return await this.postRespository.find({
+        return await this.postRepository.find({
             where: {
                 ownerUserId: userId
             }
@@ -353,7 +525,7 @@ export class PostService {
     }
 
     async getAllPostByUserIdComment(userId: string) {
-        return await this.postRespository.find({
+        return await this.postRepository.find({
             where: {
                 comment: {
                     userId: userId

@@ -17,6 +17,14 @@ export class PostResolver {
         private postService: PostService,
         private postGateway: PostGateway
     ) { }
+    
+    @HttpCode(200)
+    @Query(() => [PostType])
+    getAllPost(
+        @Args('userId') userId: string
+    ) {
+        return this.postService.getAllPosts(userId);
+    }
 
     @HttpCode(200)
     @Query(() => [PostType])

@@ -4,17 +4,17 @@ import { User } from './type/user.entity'
 import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { ChangePasswordDto, 
-    FriendDto, 
-    NotificationDto, 
-    ValidateUserDto, 
-    BookMarkDto, 
-    ForgetPasswordDto ,
+import {
+    ChangePasswordDto,
+    FriendDto,
+    NotificationDto,
+    ValidateUserDto,
+    BookMarkDto,
+    ForgetPasswordDto,
     ValidateOtpDto
 } from './dto';
 import { CommitEntity } from '../commit/commit.entity';
 import { v5 as uuidv5 } from 'uuid';
-import { NotificationType } from './type/notification.type';
 import * as argon from 'argon2';
 import { MailerService } from '@nestjs-modules/mailer';
 import * as OTPAuth from "otpauth";
@@ -33,6 +33,21 @@ export class UserService {
         private readonly mailerService: MailerService
     ) { }
 
+    async getAllUser(userId: string) {
+        const user = await this.getUser(userId);
+        if (user.role !== "ADMIN") {
+            throw new ForbiddenException(
+                'Request is denied',
+            );
+        }
+        const dataUser = await this.userRepository.find({});
+        for (let i = 0; i < dataUser.length; i++) {
+            delete dataUser[i].hash;
+            delete dataUser[i].refreshToken;
+        }
+        return dataUser;
+    }
+
     async getUser(userId: string): Promise<User> {
         const user = await this.userRepository.findOne({
             where: {
@@ -44,6 +59,11 @@ export class UserService {
             throw new ForbiddenException(
                 `This userId (${userId}) does not exist`,
             );
+        if (user.role === "BANNED") {
+            throw new ForbiddenException(
+                `This userId had banned`,
+            );
+        }
         delete user.hash;
         delete user.refreshToken;
         return user;
@@ -92,6 +112,11 @@ export class UserService {
             throw new ForbiddenException(
                 'This user does not exist',
             );
+        if (user.role === "BANNED") {
+            throw new ForbiddenException(
+                `This userId had banned`,
+            );
+        }
         if (user.bookMarks == null) user.bookMarks = [];
         user.bookMarks.push(payload.bookMarkId);
         await this.userRepository.save(user);
@@ -125,6 +150,11 @@ export class UserService {
             throw new ForbiddenException(
                 'This user does not exist',
             );
+        if (user.role === "BANNED") {
+            throw new ForbiddenException(
+                `This userId had banned`,
+            );
+        }
         const pwMatches = await argon.verify(
             user.hash,
             payload.currentPassword
@@ -154,10 +184,16 @@ export class UserService {
         if (payload.name !== null) user.detail.name = payload.name;
         user.detail.nickName = payload.nickName;
         user.detail.birthday = payload.birthday;
-        user.detail.phoneNumber = payload.phoneNumber;
         user.detail.description = payload.description;
-        user.detail.age = payload.age;
         user.detail.avatarUrl = payload.avatarUrl;
+        return await this.userRepository.save(user);
+    }
+
+    async validatePrivacyUser(payload: ValidateUserDto) {
+        const user = await this.getUser(payload.userId);
+        user.detail.gender = payload.gender;
+        user.detail.phoneNumber = payload.phoneNumber;
+        user.detail.countryCode = payload.countryCode;
         return await this.userRepository.save(user);
     }
 
@@ -195,7 +231,7 @@ export class UserService {
     }
 
     async deleteFriendCommit(userId: string, friendId: string) {
-        const dataCre = await this.commitRepository.findOne({
+        const dataCre = await this.commitRepository.find({
             where: {
                 isDisplay: true,
                 createdUserId: userId,
@@ -203,21 +239,28 @@ export class UserService {
             }
         })
         if (dataCre) {
-            dataCre.isDisplay = false
-            return this.commitRepository.save(dataCre)
+            for (let i = 0; i < dataCre.length; i++) {
+
+                dataCre[i].isDisplay = false
+                await this.commitRepository.save(dataCre[i])
+            }
+            return
         }
         else {
-            const dataRec = await this.commitRepository.findOne({
+            const dataRec = await this.commitRepository.find({
                 where: {
                     isDisplay: true,
                     createdUserId: friendId,
                     receiveUserId: userId,
                 }
             })
-            dataRec.isDisplay = false
-            return this.commitRepository.save(dataRec)
-        }
+            for (let i = 0; i < dataRec.length; i++) {
 
+                dataRec[i].isDisplay = false
+                await this.commitRepository.save(dataRec[i])
+            }
+            return
+        }
     }
 
     async addFriend(payload: FriendDto) {
@@ -230,8 +273,8 @@ export class UserService {
         }
         const tmpCommit = await this.commitRepository.findOne({
             where: {
-                createdUserId: payload.friendId,
-                receiveUserId: payload.userId,
+                createdUserId: payload.userId,
+                receiveUserId: payload.friendId,
             }
         })
         if (tmpCommit) {
@@ -257,17 +300,27 @@ export class UserService {
                 'Request is denied',
             );
         }
-        const newCommit = await this.commitRepository.findOne({
+        const newCommit = await this.commitRepository.find({
             where: {
                 createdUserId: payload.friendId,
                 receiveUserId: payload.userId,
                 isDisplay: true
             }
         })
-        newCommit.value = true;
+
+        if (newCommit.length == 0) {
+            throw new ForbiddenException(
+                'This user have not commit',
+            );
+        }
+        for (let i = 0; i < newCommit.length; i++) {
+            newCommit[i].value = true;
+            newCommit[i].isDisplay = false;
+            await this.commitRepository.save(newCommit[i]);
+        }
         await this.addFriendToUser(payload.userId, payload.friendId)
         await this.addFriendToUser(payload.friendId, payload.userId)
-        return await this.commitRepository.save(newCommit)
+        return newCommit[0];
     }
 
     async removeFriend(payload: FriendDto) {
@@ -276,15 +329,34 @@ export class UserService {
         return await this.deleteFriendCommit(payload.userId, payload.friendId)
     }
 
-    async addNotification(payload: NotificationDto) {
-        const user = await this.getUser(payload.userId);
-        const newNotification: NotificationType = new NotificationType();
-        newNotification.id = uuidv5(payload.userId + user.notification.length, uuidv5.URL)
-        newNotification.content = payload.content;
-        newNotification.type = payload.type;
-        newNotification.fileUrl = payload.fileUrl;
-        user.notification.push(newNotification);
-        return await this.userRepository.save(user);
+    async removeNotification(payload: NotificationDto) {
+        const user = await this.userRepository.findOne({
+            where: {
+                id: payload.userId,
+            }
+        });
+        if (!user) {
+            throw new ForbiddenException(
+                `This userId does not exist`,
+            );
+        }
+
+        if (user.role === "BANNED") {
+            throw new ForbiddenException(
+                `This user had banned`,
+            );
+        }
+        const indexNoti = user.notification.findIndex(noti => noti.id === payload.notificationId)
+        if (indexNoti === -1) {
+            throw new ForbiddenException(
+                'This notification does not exist',
+            );
+        }
+        user.notification[indexNoti].isDisplay = false;
+        await this.userRepository.save(user);
+        delete user.hash;
+        delete user.refreshToken;
+        return user;
     }
 
     async createOtpCode(dto: ValidateOtpDto) {
@@ -366,11 +438,16 @@ export class UserService {
                     email: dto.email
                 }
             });
-    
+
             if (!user)
                 throw new ForbiddenException(
                     `This userId does not exist`,
                 );
+            if (user.role === "BANNED") {
+                throw new ForbiddenException(
+                    `This user had banned`,
+                );
+            }
             delete user.hash;
             delete user.refreshToken;
             await this.mailerService.sendMail({
@@ -397,7 +474,7 @@ export class UserService {
         }
         return { isRequest: false }
     }
-    
+
     async validateOptCode(dto: ValidateOtpDto) {
         const dataOtp = await this.otpCodeRepository.findOne({
             where: {
@@ -417,7 +494,7 @@ export class UserService {
         dataOtp.value = true;
         dataOtp.isDisplay = false;
         await this.otpCodeRepository.save(dataOtp);
-        return {isRequest : true, otpId: dataOtp.id}
+        return { isRequest: true, otpId: dataOtp.id }
     }
 
     async forgetPasswordValidate(dto: ForgetPasswordDto) {
@@ -431,7 +508,11 @@ export class UserService {
             throw new ForbiddenException(
                 `This email does not exist`,
             );
-
+        if (user.role === "BANNED") {
+            throw new ForbiddenException(
+                `This user had banned`,
+            );
+        }
         const dataOtp = await this.otpCodeRepository.findOne({
             where: {
                 id: dto.otpId,
@@ -450,7 +531,7 @@ export class UserService {
                 'New password do not match',
             );
         }
-        
+
         if (dataOtp.value == false) {
             throw new ForbiddenException(
                 'Otp not validate',

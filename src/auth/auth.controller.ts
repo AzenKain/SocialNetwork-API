@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Post, UseGuards } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { JwtGuardRestApiRefresh } from './guard';
 import { AdminDto, CommandDto } from './dto';
@@ -16,6 +16,7 @@ export class AuthController {
     async addAdmin(
         @Body() dto : AdminDto,
     ) {
+        console.log(dto);
         return this.authService.addAdmin(dto)
     }
 
@@ -37,7 +38,7 @@ export class AuthController {
         return await this.authService.commandAdmin(dto);
     }
     
-    @Delete('removeAdmin')
+    @Post('removeAdmin')
     async removeAdmin(
         @Body() dto : CommandDto
     ) {

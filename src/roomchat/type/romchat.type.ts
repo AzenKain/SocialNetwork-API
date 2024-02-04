@@ -18,7 +18,7 @@ export class RoomchatType {
     isSingle: boolean;
 
     @Field({nullable: true})
-    isBlock: boolean | null;
+    isBlock: string | null;
 
     @Field()
     ownerUserId: string;

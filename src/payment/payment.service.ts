@@ -35,15 +35,15 @@ export class PaymentService {
     async generateMomo(payment: PaymentDto)  {
         let amount = "0";
         let gift = "";
-        if (payment.select = "1") {
+        if (payment.select == "1") {
             amount = "30000"
             gift = "1 month"
         }
-        else if (payment.select = "2") {
+        else if (payment.select == "2") {
             amount = "150000"
             gift = "6 months"
         }
-        else if (payment.select = "3") {
+        else if (payment.select == "3") {
             amount = "350000"
             gift = "12 months"
         }

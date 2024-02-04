@@ -2,11 +2,17 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
+type DataNotificationType {
+  roomId: String
+  userDtoId: String
+}
+
 type NotificationType {
   id: String!
   type: String!
-  content: String
-  fileUrl: [String!]!
+  isRead: Boolean!
+  isDisplay: Boolean!
+  content: DataNotificationType
   created_at: DateTime!
   updated_at: DateTime!
 }
@@ -20,9 +26,10 @@ type ProfileType {
   name: String!
   nickName: String
   birthday: DateTime
-  age: Float
   description: String
-  phoneNumber: Float
+  phoneNumber: String
+  gender: String
+  countryCode: String
   avatarUrl: String
 }
 
@@ -67,15 +74,23 @@ type Roomchat {
   title: String
   isDisplay: Boolean!
   isSingle: Boolean!
+  isBlock: String
   ownerUserId: String!
   description: String
   imgDisplay: String
   member: [String!]!
+  memberNickname: JSONObject
+  role: JSONObject
   memberOut: [MemberOut!]!
   data: [Message!]!
   created_at: DateTime!
   updated_at: DateTime!
 }
+
+"""
+The `JSONObject` scalar type represents JSON objects as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
+"""
+scalar JSONObject
 
 type MemberOut {
   memberId: String!
@@ -101,6 +116,11 @@ type NullResponse {
 type BookmarkType {
   userId: String!
   bookmarkId: String!
+}
+
+type IsOtp {
+  isRequest: Boolean!
+  otpId: String
 }
 
 type AuthResponse {
@@ -132,17 +152,20 @@ type Payment {
 }
 
 type Query {
+  getAllUser(userId: String!): [User!]!
   getUser(id: String!): User!
   findUser(content: String!): [User!]!
   acceptFriendUser(acceptFriend: FriendDto!): Commit!
   forgetPasswordValidate(forgetPassword: ForgetPasswordDto!): User!
   getFriendRequest(id: String!): [Commit!]!
+  getFriendReceive(id: String!): [Commit!]!
   getAllRomchatByUserId(id: String!): [Roomchat!]!
   getRomchatById(roomchatId: String!): Roomchat!
   getRomchatByTitle(roomchatId: String!): Roomchat!
   Login(userDto: AuthDto!): AuthResponse!
   logout(id: String!): LogoutResponse!
   Refresh(id: String!): AuthResponse!
+  getAllPost(userId: String!): [Post!]!
   getAllPostByUserId(userId: String!): [Post!]!
   getDailyPostByUserId(userId: String!): [Post!]!
   searchPost(content: String!): [Post!]!
@@ -155,8 +178,8 @@ input FriendDto {
 }
 
 input ForgetPasswordDto {
-  userId: String!
-  otpCode: String!
+  email: String!
+  otpId: String!
   newPassword: String!
   validatePassword: String!
 }
@@ -168,17 +191,24 @@ input AuthDto {
 
 type Mutation {
   validateUser(validateUser: ValidateUserDto!): User!
+  validatePrivacyUser(validateUser: ValidateUserDto!): User!
   changePassword(changePassword: ChangePasswordDto!): User!
   addFriendUser(addFriend: FriendDto!): Commit!
   addBookMarkUser(addBookMark: BookMarkDto!): BookmarkType!
-  forgetPasswordRequest(userId: String!): NullResponse!
+  createOtpCode(createOtp: ValidateOtpDto!): IsOtp!
+  validateOtpCode(validateOtp: ValidateOtpDto!): IsOtp!
   removeBookMarkUser(removeBookMark: BookMarkDto!): NullResponse!
   removeFriendUser(removeFriend: FriendDto!): Commit!
-  addNotificationUser(addNotification: NotificationDto!): User!
+  removeNotificationUser(removeNotification: NotificationDto!): User!
   createRoomChat(createRoom: CreateRoomDto!): Roomchat!
   removeRoomChat(removeRoomChat: ValidateRoomDto!): NullResponse!
   addMemberRomchat(addMember: MemberRoomDto!): Roomchat!
   removeMemberRoomchat(removeMember: MemberRoomDto!): NullResponse!
+  validateNicknameMemberRoomchat(validateNicknameMember: ValidateMemberDto!): Roomchat!
+  blockRoomchat(blockRoomchat: ValidateRoomDto!): Roomchat!
+  unblockRoomchat(unblockRoomchat: ValidateRoomDto!): Roomchat!
+  addModRoomchat(addMod: MemberRoomDto!): Roomchat!
+  removeModRoomchat(removeMod: MemberRoomDto!): Roomchat!
   removeMessageRoomchat(removeMessage: ValidateMessageDto!): NullResponse!
   addInteractMessageRoomchat(addInteractMessage: InteractMessageDto!): Message!
   removeInteractMessageRoomchat(removeInteractMessage: ValidateMessageDto!): NullResponse!
@@ -206,8 +236,9 @@ input ValidateUserDto {
   description: String!
   avatarUrl: String
   birthday: DateTime
-  age: Int
-  phoneNumber: Int
+  gender: String
+  phoneNumber: String
+  countryCode: String
 }
 
 input ChangePasswordDto {
@@ -222,11 +253,15 @@ input BookMarkDto {
   bookMarkId: String!
 }
 
+input ValidateOtpDto {
+  email: String!
+  otpCode: String
+  type: String!
+}
+
 input NotificationDto {
   userId: String!
-  type: String!
-  content: String!
-  fileUrl: [String!]!
+  notificationId: String!
 }
 
 input CreateRoomDto {
@@ -252,6 +287,13 @@ input MemberRoomDto {
   member: [String!]!
 }
 
+input ValidateMemberDto {
+  userId: String!
+  roomchatId: String!
+  nickName: String
+  fileUrl: [String!]
+}
+
 input ValidateMessageDto {
   userId: String!
   roomchatId: String!
@@ -271,9 +313,12 @@ input InteractMessageDto {
 input SignUpDto {
   email: String!
   password: String!
+  otpId: String!
   name: String!
   birthday: DateTime
-  phoneNumber: Float
+  gender: String
+  phoneNumber: String
+  countryCode: String
 }
 
 input CreatePostDto {
