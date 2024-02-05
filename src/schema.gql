@@ -198,7 +198,7 @@ type Mutation {
   createOtpCode(createOtp: ValidateOtpDto!): IsOtp!
   validateOtpCode(validateOtp: ValidateOtpDto!): IsOtp!
   removeBookMarkUser(removeBookMark: BookMarkDto!): NullResponse!
-  removeFriendUser(removeFriend: FriendDto!): Commit!
+  removeFriendUser(removeFriend: FriendDto!): NullResponse!
   removeNotificationUser(removeNotification: NotificationDto!): User!
   createRoomChat(createRoom: CreateRoomDto!): Roomchat!
   removeRoomChat(removeRoomChat: ValidateRoomDto!): NullResponse!

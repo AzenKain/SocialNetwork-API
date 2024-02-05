@@ -100,31 +100,40 @@ export class PostService {
                 isDisplay: true
             }
         });
-        let dataRe = [...postRe]
-        for (let i : number = 0; i < userData.friends.length; i++) {
-            const dataPostFriend = await this.postRepository.find({
-                where: {
-                    ownerUserId: userData.friends[i],
-                    isDisplay: true
-                }
-            })
-            dataRe = dataRe.concat(dataPostFriend)
+        let dataRe = [];
+        dataRe = dataRe.concat(postRe)
+
+        if (userData.friends && userData.friends.length > 0 ) {
+            for (let i : number = 0; i < userData.friends.length; i++) {
+                const dataPostFriend = await this.postRepository.find({
+                    where: {
+                        ownerUserId: userData.friends[i],
+                        isDisplay: true
+                    }
+                })
+                if (!dataPostFriend) continue;
+                dataRe = dataRe.concat(dataPostFriend)
+            }
         }
+
         const dataAdmin = await this.userRepository.findOne({
             where: {
                 email: this.config.get('MAIL_USER')
             }
         })
-        delete dataAdmin.hash
-        delete dataAdmin.refreshToken
-        if (dataAdmin) {
+
+        if (dataAdmin && dataAdmin.id !== userId) {
+            delete dataAdmin.hash
+            delete dataAdmin.refreshToken
             const dataPostAdmin = await this.postRepository.find({
                 where: {
                     ownerUserId: dataAdmin.id,
                     isDisplay: true
                 }
             })
-            dataRe = dataRe.concat(dataPostAdmin)
+            if (dataPostAdmin) {
+                dataRe = dataRe.concat(dataPostAdmin)
+            }
         }
         return dataRe;
     }
@@ -525,12 +534,30 @@ export class PostService {
     }
 
     async getAllPostByUserIdComment(userId: string) {
-        return await this.postRepository.find({
+        let dataRe = [];
+        const dataPost = await this.postRepository.find({});
+        const dataAdmin = await this.userRepository.findOne({
             where: {
-                comment: {
-                    userId: userId
-                }
+                email: this.config.get('MAIL_USER')
             }
-        });
+        })
+        delete dataAdmin.hash
+        delete dataAdmin.refreshToken
+        if (dataAdmin) {
+            const dataPostAdmin = await this.postRepository.find({
+                where: {
+                    ownerUserId: dataAdmin.id,
+                    isDisplay: true
+                }
+            })
+            dataRe = dataRe.concat(dataPostAdmin)
+        }
+        for (const post of dataPost) {
+            const indexComment = post.comment.findIndex(comment => comment.userId === userId)
+            if ( indexComment !==  -1) {
+                dataRe.push(post)
+            }
+        }
+        return dataRe
     }
 }

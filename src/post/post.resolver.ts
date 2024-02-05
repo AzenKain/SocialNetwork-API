@@ -64,7 +64,8 @@ export class PostResolver {
         @Args('createPost') post: CreatePostDto
     ) {
         const newPost = await this.postService.createPost(post)
-        await this.postGateway.notification(post.userId, "newPostCreated", newPost)
+        await this.postGateway.addMemberRoomchat(newPost.id, newPost.ownerUserId)
+        await this.postGateway.notification(newPost.id, "newPostCreated", newPost)
         return newPost;
     }
 

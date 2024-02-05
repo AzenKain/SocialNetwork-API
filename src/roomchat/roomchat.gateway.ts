@@ -22,7 +22,7 @@ export class RoomchatGateway implements OnGatewayInit, OnGatewayConnection, OnGa
 
   async addMemberRoomchat(roomId: string, userId: string) {
     try {
-      this.connectedClients[userId].join(roomId);
+      this.connectedClients.get(userId).join(roomId);
     }
     catch (err) {
       return;
@@ -30,9 +30,9 @@ export class RoomchatGateway implements OnGatewayInit, OnGatewayConnection, OnGa
   }
   
   async addMembersRoomchat(roomId: string, userId: string[]) {
-    for (const memberId in userId) {
+    for (let i = 0; i < userId.length; i++)  {
       try {
-        this.connectedClients[memberId].join(roomId);
+        this.connectedClients.get(userId[i]).join(roomId);
       }
       catch (err) {
         continue;
@@ -42,9 +42,9 @@ export class RoomchatGateway implements OnGatewayInit, OnGatewayConnection, OnGa
   }
 
   async leaveMembersRoomchat(roomId: string, userId: string[]) {
-    for (const memberId in userId) {
+    for (let i = 0; i < userId.length; i++)  {
       try {
-        this.connectedClients[memberId].leave(roomId);
+        this.connectedClients.get(userId[i]).leave(roomId);
       }
       catch (err) {
         continue;
@@ -52,7 +52,6 @@ export class RoomchatGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     }
     return;
   }
-  
   @SubscribeMessage('sendMessage')
   async sendMessage(@ConnectedSocket() socket: Socket, @MessageBody() payload: any) {
     await this.roomchatService.getPayloadFromSocket(socket);
@@ -93,10 +92,10 @@ export class RoomchatGateway implements OnGatewayInit, OnGatewayConnection, OnGa
       })
       if (!user) return;
       user.isOnline = true;
-      this.userRespository.save(user);
+      await this.userRespository.save(user);
       if (userId) {
         const roomchats = await this.roomchatService.getAllRomchatByUserId(userId);
-        if (!roomchats) return;
+        if (roomchats.length == 0) return;
         for (const roomchat of roomchats) {
           socket.join(roomchat.id)
         }
