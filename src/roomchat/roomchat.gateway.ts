@@ -12,7 +12,7 @@ export class RoomchatGateway implements OnGatewayInit, OnGatewayConnection, OnGa
   @WebSocketServer()
   server: Server;
 
-  connectedClients: Map<string, Socket> = new Map<string, Socket>();
+  connectedClients: Map<string, string[]> = new Map<string, string[]>();
 
   constructor(
     private roomchatService: RoomchatService,
@@ -22,7 +22,13 @@ export class RoomchatGateway implements OnGatewayInit, OnGatewayConnection, OnGa
 
   async addMemberRoomchat(roomId: string, userId: string) {
     try {
-      this.connectedClients.get(userId).join(roomId);
+      const socketId = this.connectedClients.get(userId);
+      if (socketId == undefined) return
+      for (let j = 0; j < socketId.length; j++) {
+        const socketClient = this.server.sockets.sockets.get(socketId[j]);
+        if (socketClient == undefined) continue;
+        socketClient.join(roomId);
+      }
     }
     catch (err) {
       return;
@@ -32,7 +38,13 @@ export class RoomchatGateway implements OnGatewayInit, OnGatewayConnection, OnGa
   async addMembersRoomchat(roomId: string, userId: string[]) {
     for (let i = 0; i < userId.length; i++)  {
       try {
-        this.connectedClients.get(userId[i]).join(roomId);
+        const socketId = this.connectedClients.get(userId[i]);
+        if (socketId == undefined) continue;
+        for (let j = 0; j < socketId.length; j++) {
+          const socketClient = this.server.sockets.sockets.get(socketId[j]);
+          if (socketClient == undefined) continue;
+          socketClient.join(roomId);
+        }
       }
       catch (err) {
         continue;
@@ -44,7 +56,13 @@ export class RoomchatGateway implements OnGatewayInit, OnGatewayConnection, OnGa
   async leaveMembersRoomchat(roomId: string, userId: string[]) {
     for (let i = 0; i < userId.length; i++)  {
       try {
-        this.connectedClients.get(userId[i]).leave(roomId);
+        const socketId = this.connectedClients.get(userId[i]);
+        if (socketId == undefined) continue;
+        for (let j = 0; j < socketId.length; j++) {
+          const socketClient = this.server.sockets.sockets.get(socketId[j]);
+          if (socketClient == undefined) continue;
+          socketClient.leave(roomId);
+        }
       }
       catch (err) {
         continue;
@@ -52,6 +70,7 @@ export class RoomchatGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     }
     return;
   }
+
   @SubscribeMessage('sendMessage')
   async sendMessage(@ConnectedSocket() socket: Socket, @MessageBody() payload: any) {
     await this.roomchatService.getPayloadFromSocket(socket);
@@ -60,7 +79,7 @@ export class RoomchatGateway implements OnGatewayInit, OnGatewayConnection, OnGa
   }
 
   afterInit(socket: Socket) {
-  
+
   }
 
   async notification(roomId: string, title: string,data: any) {
@@ -73,6 +92,8 @@ export class RoomchatGateway implements OnGatewayInit, OnGatewayConnection, OnGa
 
   async handleConnection(socket: Socket) {
     const data = await this.roomchatService.getPayloadFromSocket(socket);
+    if (!data) return;
+    if (!("id" in data)) return;
     try {
       if (data == null) {
         socket.disconnect();
@@ -83,7 +104,13 @@ export class RoomchatGateway implements OnGatewayInit, OnGatewayConnection, OnGa
         return;
       }
       const userId = data.id;
-      this.connectedClients.set(userId, socket);
+      const dataSocket = this.connectedClients.get(userId)
+      if (dataSocket == undefined) {
+        this.connectedClients.set(userId, [socket.id])
+      }
+      else {
+        this.connectedClients.set(userId, [...dataSocket, socket.id])
+      }
       socket.join(userId);
       const user = await this.userRespository.findOne({
         where: {
@@ -110,7 +137,12 @@ export class RoomchatGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     if (!data) return;
     if (!("id" in data)) return;
     const userId = data.id;
-    this.connectedClients.delete(userId)
+    this.connectedClients.forEach((socketIds, userId) => {
+      if (socketIds.includes(socket.id)) {
+        const updatedSocketIds = socketIds.filter(id => id !== socket.id);
+        this.connectedClients.set(userId, updatedSocketIds);
+      }
+    });
     const user = await this.userRespository.findOne({
       where: {
         id: userId

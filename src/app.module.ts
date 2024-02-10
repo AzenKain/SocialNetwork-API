@@ -22,6 +22,7 @@ import { MailerModule } from '@nestjs-modules/mailer/';
 import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 import { OtpCode } from './user/type/otpCode.entity';
 import { PaymentModule } from './payment/payment.module';
+import { BillEntity } from './payment/type/bill.entity';
 
 @Module({
   imports: [
@@ -49,7 +50,8 @@ import { PaymentModule } from './payment/payment.module';
         Roomchat,
         PostEntity,
         CommitEntity,
-        OtpCode
+        OtpCode,
+        BillEntity
       ]
     }),
     AuthModule,

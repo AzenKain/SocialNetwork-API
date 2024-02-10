@@ -296,21 +296,22 @@ export class PostService {
                     `The owner post does not exist`,
                 );
             }
-            const notiUser = new NotificationType();
-            notiUser.id = uuidv5(newPost.id + ownerPost.id + ownerPost.notification.length + generatedOTP, uuidv5.URL);
-            const notiContent = new DataNotificationType();
-            notiContent.roomId = newPost.id;
-            notiContent.userDtoId = dataUser.id;
-            notiUser.content = notiContent;
-            notiUser.isDisplay = true;
-            notiUser.isRead = false;
-            notiUser.type = "NEWINTERACTION";
-            notiUser.created_at = new Date();
-            notiUser.updated_at = new Date();
-            ownerPost.notification.push(notiUser);
-            await this.userRepository.save(ownerPost);
+            if (ownerPost.id !== interaction.userId) {
+                const notiUser = new NotificationType();
+                notiUser.id = uuidv5(newPost.id + ownerPost.id + ownerPost.notification.length + generatedOTP, uuidv5.URL);
+                const notiContent = new DataNotificationType();
+                notiContent.roomId = newPost.id;
+                notiContent.userDtoId = dataUser.id;
+                notiUser.content = notiContent;
+                notiUser.isDisplay = true;
+                notiUser.isRead = false;
+                notiUser.type = "NEWINTERACTION";
+                notiUser.created_at = new Date();
+                notiUser.updated_at = new Date();
+                ownerPost.notification.push(notiUser);
+                await this.userRepository.save(ownerPost);
+            }
         }
-
         return newInteraction
     }
 
@@ -377,19 +378,22 @@ export class PostService {
                 `The owner post does not exist`,
             );
         }
-        const notiUser = new NotificationType();
-        notiUser.id = uuidv5(newPost.id + ownerPost.id + ownerPost.notification.length + generatedOTP, uuidv5.URL);
-        const notiContent = new DataNotificationType();
-        notiContent.roomId = newPost.id;
-        notiContent.userDtoId = dataUser.id;
-        notiUser.content = notiContent;
-        notiUser.isDisplay = true;
-        notiUser.isRead = false;
-        notiUser.type = "NEWCOMMENT";
-        notiUser.created_at = new Date();
-        notiUser.updated_at = new Date();
-        ownerPost.notification.push(notiUser);
-        await this.userRepository.save(ownerPost);
+        if (newPost.ownerUserId !== dataUser.id) {
+            const notiUser = new NotificationType();
+            notiUser.id = uuidv5(newPost.id + ownerPost.id + ownerPost.notification.length + generatedOTP, uuidv5.URL);
+            const notiContent = new DataNotificationType();
+            notiContent.roomId = newPost.id;
+            notiContent.userDtoId = dataUser.id;
+            notiUser.content = notiContent;
+            notiUser.isDisplay = true;
+            notiUser.isRead = false;
+            notiUser.type = "NEWCOMMENT";
+            notiUser.created_at = new Date();
+            notiUser.updated_at = new Date();
+            ownerPost.notification.push(notiUser);
+            await this.userRepository.save(ownerPost);
+        }
+
 
         return newComment;
     }

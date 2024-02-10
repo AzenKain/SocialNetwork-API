@@ -37,6 +37,9 @@ export class User {
     @Column("simple-json")
     notification: NotificationType[];
 
+    @Column()
+    premiumTime: Date | null;
+
     @CreateDateColumn()
     created_at: Date;
         

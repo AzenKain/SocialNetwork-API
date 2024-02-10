@@ -162,6 +162,11 @@ export class RoomchatService {
         }
         delete validateUser.hash;
         delete validateUser.refreshToken;
+        if (new Date(validateUser.premiumTime) < new Date() && payload.member.length > 50) {
+            throw new ForbiddenException(
+                'Basic users must only create room under 50 members',
+            );
+        }
         const sortedMembers = [payload.userId, ...payload.member].sort()
         if (payload.isSingle == true) {
             const roomchatCre = await this.roomchatRespository.findOne({
@@ -458,6 +463,26 @@ export class RoomchatService {
                 'The user has no permission',
             );
         }
+        const validateUser = await this.userRespository.findOne({
+            where: {
+                id: roomchat.ownerUserId
+            }
+        })
+
+        if (!validateUser) {
+            throw new ForbiddenException(
+                `This owner room does not exist`,
+            );
+        }
+
+        delete validateUser.hash;
+        delete validateUser.refreshToken;
+        if (new Date(validateUser.premiumTime) < new Date() && roomchat.member.length > 50) {
+            throw new ForbiddenException(
+                'The current room owner is a basic user, so the room cannot have more than 50 members',
+            );
+        }
+
         if (roomchat.role.ADMIN.findIndex(user => user.memberId === addMemberRoom.userId) === -1 
         && roomchat.role.MOD.findIndex(user => user.memberId === addMemberRoom.userId) === -1 
         ) {

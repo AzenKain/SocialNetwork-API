@@ -190,7 +190,8 @@ export class AuthService {
             friends: [],
             detail: detailUser,
             bookMarks: [],
-            role: "USER"
+            role: "USER",
+            premiumTime: new Date("0000-01-01")
         })
 
         const newUser = await this.userRespository.save(UserCre);

@@ -59,7 +59,10 @@ export class UserType {
 
     @Field(()=> [NotificationType],{ nullable: true })
     notification: NotificationType[];
-
+    
+    @Field({ nullable: true })
+    premiumTime: Date;
+    
     @Field()
     created_at: Date;
 

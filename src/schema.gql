@@ -44,6 +44,7 @@ type User {
   friends: [String!]
   bookMarks: [String!]
   notification: [NotificationType!]
+  premiumTime: DateTime
   created_at: DateTime!
   updated_at: DateTime!
 }
@@ -227,6 +228,7 @@ type Mutation {
   InteractComment(addInteractComment: InteractPostDto!): Message!
   RemoveInteractionComment(removeInteractionComment: InteractPostDto!): NullResponse!
   generateMomoPayment(payment: PaymentDto!): Payment!
+  generateVnpayPayment(payment: PaymentDto!): Payment!
 }
 
 input ValidateUserDto {
