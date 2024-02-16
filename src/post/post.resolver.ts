@@ -161,6 +161,7 @@ export class PostResolver {
         @Args('addInteractComment') interactComment: InteractPostDto
     ) {
         const newComment  = await this.postService.addInteractMessage(interactComment)
+        await this.postGateway.addMemberRoomchat(interactComment.postId, interactComment.userId)
         await this.postGateway.notification(interactComment.postId, "addInteractionComment", newComment)
         return newComment;
     }

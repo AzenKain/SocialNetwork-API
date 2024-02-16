@@ -1,5 +1,5 @@
 import { Field, InputType, } from "@nestjs/graphql";
-import { IsDate, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsDateString, IsNotEmpty, IsOptional, IsString } from "class-validator";
 
 @InputType()
 export class ValidateUserDto {
@@ -28,9 +28,9 @@ export class ValidateUserDto {
     @Field({ nullable: true })
     avatarUrl?: string;
 
-    @IsDate()
+    @IsDateString()
     @IsOptional()
-    @Field({ nullable: true })
+    @Field(() => Date, { nullable: true })
     birthday?: Date;
 
     @IsString()

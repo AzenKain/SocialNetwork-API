@@ -248,17 +248,16 @@ export class PaymentService {
         bill.isComplete = true;
         const currentDate = new Date();
         let numberOfMonths = 0;
-        if (bill.typeGift == "0") {
+        if (bill.typeGift.toString() === "0") {
             numberOfMonths = 1;
         }
-        else if (bill.typeGift == "1") {
+        else if (bill.typeGift.toString() === "1") {
             numberOfMonths = 6;
         }
-        else if (bill.typeGift == "1") {
+        else if (bill.typeGift.toString() === "2") {
             numberOfMonths = 12;
         }
         if (new Date(user.premiumTime) < currentDate) {
-
             const newDate = new Date(currentDate.setMonth(currentDate.getMonth() + numberOfMonths))
             user.premiumTime = newDate;
         }
