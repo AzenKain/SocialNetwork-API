@@ -173,7 +173,7 @@ export class AuthService {
         const detailUser = new ProfileType()
         detailUser.name = userDto.name;
         detailUser.phoneNumber = userDto.phoneNumber;
-        detailUser.birthday = userDto.birthday;
+        detailUser.birthday = new Date(userDto.birthday)
         detailUser.gender = userDto.gender;
         detailUser.countryCode = userDto.countryCode;
         detailUser.avatarUrl = null;

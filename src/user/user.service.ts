@@ -183,7 +183,7 @@ export class UserService {
         const user = await this.getUser(payload.userId);
         if (payload.name !== null) user.detail.name = payload.name;
         user.detail.nickName = payload.nickName;
-        user.detail.birthday = payload.birthday;
+        user.detail.birthday = new Date(payload.birthday);
         user.detail.description = payload.description;
         user.detail.avatarUrl = payload.avatarUrl;
         return await this.userRepository.save(user);

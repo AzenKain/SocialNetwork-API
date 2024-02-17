@@ -27,7 +27,7 @@ export class SignUpDto {
     @IsDateString()
     @IsOptional()
     @Field({ nullable: true })
-    birthday?: Date;
+    birthday?: string;
 
     @IsString()
     @IsOptional()
